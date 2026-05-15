@@ -71,14 +71,19 @@
 # }
 
 
+
 import streamlit as st
 import pandas as pd
 import os
 import string
+import re
+from difflib import get_close_matches
 
 synonyms = {
     "plants": "crops",
     "crop": "crops",
+    "plant": "crops",
+    "harvest": "harvesting",
     "farmers": "farmer",
     "cows": "cow",
     "goats": "goat",
@@ -88,10 +93,16 @@ synonyms = {
     "fertilizers": "fertilizer",
     "pesticides": "pesticide",
     "tractors": "tractor",
-    "machines": "machine"
+    "machines": "machine",
+    "farms": "farm",
+    "watering": "water",
+    "irrigation": "water"
 }
 
 df = pd.read_csv("../dataset/agro_terms.csv")
+
+# Get all keywords for smart suggestions
+keywords = df["keyword"].str.lower().tolist()
 
 st.title("🌾 AgroSign AI")
 
@@ -120,18 +131,30 @@ if clear:
 if submit and text:
     st.session_state.last_text = text
     
-    words = text.lower().split()
+    # Remove punctuation and split properly
+    clean_text = re.sub(r'[^\w\s]', '', text.lower())
+    words = clean_text.split()
+    
+    # Remove common stopwords
+    stopwords = ["is", "the", "in", "are", "and", "of", "to", "a", "an"]
+    words = [word for word in words if word not in stopwords]
 
     st.subheader("Detected Signs:")
 
     for word in words:
+        original_word = word
+        
+        # Basic normalization - remove common suffixes
+        if word.endswith("ing") and len(word) > 4:
+            word = word[:-3]
+        elif word.endswith("s") and len(word) > 2:
+            word = word[:-1]
 
-        word = word.strip(string.punctuation)
-
+        # Synonym mapping
         if word in synonyms:
             word = synonyms[word]
 
-        # FIXED: Use exact word matching with word boundaries
+        # Try exact match first
         match = df[
             (df["keyword"].str.lower() == word) |
             (df["synonyms"].str.lower().str.split('|').apply(
@@ -140,11 +163,10 @@ if submit and text:
         ]
 
         if not match.empty:
-
             keyword = match.iloc[0]["keyword"]
             video_path = os.path.join("..", match.iloc[0]["video_path"])
 
-            st.write(f"👉 {keyword}")
+            st.write(f"👉 **{keyword}**")
 
             if os.path.exists(video_path):
                 st.video(video_path)
@@ -152,4 +174,10 @@ if submit and text:
                 st.error(f"Video not found: {video_path}")
 
         else:
-            st.warning(f"No sign found for: {word}")
+            # 🔥 Smart suggestion - find closest match
+            suggestion = get_close_matches(word, keywords, n=1, cutoff=0.6)
+            
+            if suggestion:
+                st.info(f"❓ No exact match for '{original_word}'. Did you mean: **{suggestion[0]}**?")
+            else:
+                st.warning(f"⚠️ No sign found for: {original_word}")

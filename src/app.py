@@ -50,6 +50,27 @@
 
 
 
+# import streamlit as st
+# import pandas as pd
+# import os
+# import string
+
+# synonyms = {
+#     "plants": "crops",
+#     "crop": "crops",
+#     "farmers": "farmer",
+#     "cows": "cow",
+#     "goats": "goat",
+#     "buffaloes": "buffalo",
+#     "hens": "chicken",
+#     "seeds": "seed",
+#     "fertilizers": "fertilizer",
+#     "pesticides": "pesticide",
+#     "tractors": "tractor",
+#     "machines": "machine"
+# }
+
+
 import streamlit as st
 import pandas as pd
 import os
@@ -74,31 +95,31 @@ df = pd.read_csv("../dataset/agro_terms.csv")
 
 st.title("🌾 AgroSign AI")
 
-# SAFE STATE (only for clearing output)
-if "show_output" not in st.session_state:
-    st.session_state.show_output = True
+# Initialize session state
+if "clear_trigger" not in st.session_state:
+    st.session_state.clear_trigger = 0
+if "last_text" not in st.session_state:
+    st.session_state.last_text = ""
 
-# CLEAR FUNCTION (NO TEXT STATE MODIFICATION)
-def clear_all():
-    st.session_state.show_output = False
-
-# FORM (ENTER KEY WORKS HERE)
-with st.form("form"):
+# Form with dynamic key that changes on clear
+with st.form(key=f"form_{st.session_state.clear_trigger}"):
     text = st.text_input("Enter agriculture text:")
 
     col1, col2 = st.columns(2)
 
     submit = col1.form_submit_button("Submit")
-    col2.form_submit_button("Clear", on_click=clear_all)
+    clear = col2.form_submit_button("Clear")
 
-# CLEAR OUTPUT AREA ONLY (SAFE RESET)
-if not st.session_state.show_output:
-    st.session_state.show_output = True
+# Handle clear button
+if clear:
+    st.session_state.clear_trigger += 1
+    st.session_state.last_text = ""
     st.rerun()
 
-# PROCESS INPUT
-if submit and text and st.session_state.show_output:
-
+# Process input on submit
+if submit and text:
+    st.session_state.last_text = text
+    
     words = text.lower().split()
 
     st.subheader("Detected Signs:")
@@ -110,9 +131,12 @@ if submit and text and st.session_state.show_output:
         if word in synonyms:
             word = synonyms[word]
 
+        # FIXED: Use exact word matching with word boundaries
         match = df[
             (df["keyword"].str.lower() == word) |
-            (df["synonyms"].str.lower().str.contains(word, na=False))
+            (df["synonyms"].str.lower().str.split('|').apply(
+                lambda x: word in [s.strip() for s in x] if isinstance(x, list) else False
+            ))
         ]
 
         if not match.empty:

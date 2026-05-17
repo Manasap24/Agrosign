@@ -1,141 +1,142 @@
-
-# # # synonyms = {
-
-# # #     # Crops / Plants
-# # #     "plant": "crops",
-# # #     "plants": "crops",
-# # #     "crop": "crops",
-# # #     "harvest": "harvesting",
-# # #     "harvesting": "harvesting",
-# # #     "seedling": "seed",
-# # #     "seeds": "seed",
-# # #     "farming": "farm",
-# # #     "agriculture": "farm",
-
-# # #     # Water / Irrigation
-# # #     "irrigation": "water",
-# # #     "watering": "water",
-# # #     "pump": "machine_water_pump",
-# # #     "handpump": "handpump_water",
-
-# # #     # Farmers / Farm
-# # #     "farms": "farm",
-# # #     "farmers": "farmer",
-# # #     "cultivation": "farm",
-
-# # #     # Machines
-# # #     "tractoring": "tractor",
-# # #     "plowing": "plough",
-# # #     "ploughing": "plough",
-# # #     "machine": "machine_water_pump",
-# # #     "harvester": "harvester",
-
-# # #     # Animals
-# # #     "buffaloes": "buffalo",
-# # #     "cows": "cow",
-# # #     "goats": "goat",
-# # #     "hens": "chicken",
-
-# # #     # Agriculture Materials
-# # #     "fertilizers": "fertilizer",
-# # #     "pesticides": "pesticide",
-# # #     "organic": "organic_food",
-
-# # #     # Weather / Soil
-# # #     "climate": "weather",
-# # #     "rain": "weather",
-# # #     "mud": "soil",
-# # #     "land": "soil"
-# # # }
-
-
-
-# import streamlit as st
-# import pandas as pd
-# import os
-# import string
-
-# synonyms = {
-#     "plants": "crops",
-#     "crop": "crops",
-#     "farmers": "farmer",
-#     "cows": "cow",
-#     "goats": "goat",
-#     "buffaloes": "buffalo",
-#     "hens": "chicken",
-#     "seeds": "seed",
-#     "fertilizers": "fertilizer",
-#     "pesticides": "pesticide",
-#     "tractors": "tractor",
-#     "machines": "machine"
-# }
-
-
-
 import streamlit as st
 import pandas as pd
+import re
+from difflib import get_close_matches
 
-synonyms = {
-    "plants": "crops",
-    "crop": "crops",
-    "plant": "crops",
-    "harvest": "harvesting",
-    "farmers": "farmer",
-    "cows": "cow",
-    "goats": "goat",
-    "buffaloes": "buffalo",
-    "hens": "chicken",
-    "seeds": "seed",
-    "fertilizers": "fertilizer",
-    "pesticides": "pesticide",
-    "tractors": "tractor",
-    "machines": "machine",
-    "farms": "farm",
-    "watering": "water",
-    "irrigation": "water"
-}
+# ---------------------------------------------------
+# PAGE SETTINGS
+# ---------------------------------------------------
+st.set_page_config(
+    page_title="AgroSign AI",
+    page_icon="🌾",
+    layout="centered"
+)
 
-# Load dataset
-df = pd.read_csv("dataset/agro_terms.csv")
+# ---------------------------------------------------
+# LOAD DATASET
+# ---------------------------------------------------
+try:
+    df = pd.read_csv("dataset/agro_terms.csv")
+except Exception as e:
+    st.error(f"Dataset loading error: {e}")
+    st.stop()
 
+
+keywords = df["keyword"].tolist()
+
+# ---------------------------------------------------
+# CLEAN DATASET
+# ---------------------------------------------------
+df["keyword"] = df["keyword"].fillna("").str.lower().str.strip()
+
+df["synonyms"] = (
+    df["synonyms"]
+    .fillna("")
+    .str.lower()
+    .str.strip()
+)
+
+df["video_path"] = df["video_path"].fillna("")
+
+# ---------------------------------------------------
+# TEXT CLEANING FUNCTION
+# ---------------------------------------------------
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r"[^\w\s]", "", text)
+    return text
+
+# ---------------------------------------------------
+# FIND MATCH FUNCTION
+# ---------------------------------------------------
+def find_match(word):
+
+    # Exact match
+    keyword_match = df[df["keyword"] == word]
+    if not keyword_match.empty:
+        return keyword_match.iloc[0]
+
+    # Synonym match
+    synonym_match = df[
+        df["synonyms"].apply(
+            lambda x: word in [s.strip() for s in x.split("|")]
+        )
+    ]
+
+    if not synonym_match.empty:
+        return synonym_match.iloc[0]
+
+    return None
+
+# ---------------------------------------------------
+# UI
+# ---------------------------------------------------
 st.title("🌾 AgroSign AI")
+st.markdown("### Agriculture Text to Sign Language System")
 
-# Initialize session state
-if "clear_trigger" not in st.session_state:
-    st.session_state.clear_trigger = 0
-if "last_text" not in st.session_state:
-    st.session_state.last_text = ""
+text = st.text_input("Enter agriculture-related sentence:")
 
-# Form with dynamic key that changes on clear
-with st.form(key=f"form_{st.session_state.clear_trigger}"):
-    text = st.text_input("Enter agriculture text:")
-
+# ---------------------------------------------------
+# PROCESS INPUT
+# ---------------------------------------------------
 if text:
-    words = text.lower().split()
 
-    st.subheader("Detected Signs:")
+    cleaned_text = clean_text(text)
+    words = cleaned_text.split()
 
-    for word in words:   # ✅ NOW INSIDE
+    detected = []
+    unknown_words = []
 
-        # Basic normalization
-        if word.endswith("ing"):
-            word = word[:-3]
-        elif word.endswith("s") and len(word) > 2:
-            word = word[:-1]
+    st.subheader("Detected Signs")
 
-        # Synonym mapping
-        if word in synonyms:
-            word = synonyms[word]
+    stopwords = [
+        "is", "are", "the", "in", "on", "at", "of",
+        "to", "and", "a", "an", "for", "with"
+    ]
 
-        # Try exact match first
-        match = df[
-            (df["keyword"].str.lower() == word) |
-            (df["synonyms"].str.lower().str.split('|').apply(
-                lambda x: word in [s.strip() for s in x] if isinstance(x, list) else False
-            ))
-        ]
+    for word in words:
 
-        if not match.empty:
-            video_path = match.iloc[0]["video_path"]
-            st.write(f"👉 {word}")
-            st.video(video_path)
+        # 🚫 Skip stopwords
+        if word in stopwords:
+            continue
+
+        result = find_match(word)
+
+        if result is not None:
+            keyword = result["keyword"]
+            video_path = result["video_path"]
+
+            if keyword not in detected:
+                detected.append(keyword)
+                st.markdown(f"### 👉 {keyword}")
+                try:
+                    st.video(video_path)
+                except:
+                    st.warning(f"Video not found: {video_path}")
+
+        else:
+            suggestion = get_close_matches(word, keywords, n=1, cutoff=0.6)
+
+            if suggestion:
+                    st.warning(f"No sign for '{word}'. Did you mean: {suggestion[0]}?")
+            else:
+                unknown_words.append(word)
+
+    # ---------------------------------------------------
+    # UNKNOWN WORDS
+    # ---------------------------------------------------
+    if unknown_words:
+        st.subheader("Unknown Words")
+        for word in unknown_words:
+            st.warning(f"No sign found for: {word}")
+
+    # ---------------------------------------------------
+    # SUMMARY
+    # ---------------------------------------------------
+    st.subheader("Summary")
+
+    if detected:
+        st.success("Detected Keywords:")
+        st.write(", ".join(detected))
+    else:
+        st.error("No matching agriculture signs found.")

@@ -71,7 +71,7 @@ def find_match(word):
 # ---------------------------------------------------
 # UI
 # ---------------------------------------------------
-st.title("🌾 AgroSign AI")
+st.title("🌾 AgroSign ")
 st.markdown("### Agriculture Text to Sign Language System")
 
 text = st.text_input("Enter agriculture-related sentence:")

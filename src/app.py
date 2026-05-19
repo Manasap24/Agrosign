@@ -90,8 +90,13 @@ if text:
     st.subheader("Detected Signs")
 
     stopwords = [
-        "is", "are", "the", "in", "on", "at", "of",
-        "to", "and", "a", "an", "for", "with"
+    "is", "are", "the", "in", "on", "at", "of",
+    "to", "and", "a", "an", "for", "with",
+    "was", "were", "be", "been", "being",
+    "used", "using", "use", "make", "making", "do", "doing",
+    "by", "from", "into", "over", "under", "between",
+    "his", "her", "their", "its",
+    "this", "that", "these", "those"
     ]
 
     for word in words:

@@ -11,8 +11,8 @@ fertilizer,fertilizers|manure|compost,sign_videos/fertilizer.mp4
 goat,goats|animal|livestock,sign_videos/goat.mp4
 handpump,waterpump|manualpump|hand_pump,sign_videos/handpump_water.mp4
 harvesting,harvest|reaping|collecting,sign_videos/harvesting.mp4
-harvester,cuttingmachine|combine|harvestingmachine,sign_videos/harvester.mp4
-irrigation,watering|sprinkling|watersupply,sign_videos/irrigation.mp4
+harvester,harvesting|cuttingmachine|combine|harvestingmachine,sign_videos/harvester.mp4
+irrigation,irrigating|watering|sprinkling|watersupply,sign_videos/irrigation.mp4
 machine,machines|pump|equipment|device,sign_videos/machine_water_pump.mp4
 organic,organicfood|natural|chemicalfree,sign_videos/organic_food.mp4
 pesticide,pesticides|chemical|spray|insecticide,sign_videos/pesticide.mp4

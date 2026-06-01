@@ -21,7 +21,12 @@ st.set_page_config(
 @st.cache_data
 def load_dataset():
     try:
-        df = pd.read_csv("../dataset/agro_terms.csv")
+        from pathlib import Path
+
+        BASE_DIR = Path(__file__).resolve().parent.parent
+        DATASET_PATH = BASE_DIR / "dataset" / "agro_terms.csv"
+
+        df = pd.read_csv(DATASET_PATH)
         df["keyword"] = df["keyword"].fillna("").str.lower().str.strip()
         df["synonyms"] = df["synonyms"].fillna("").str.lower().str.strip()
         df["video_path"] = df["video_path"].fillna("")

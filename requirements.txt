@@ -2,3 +2,5 @@ streamlit
 pandas
 sentence-transformers
 scikit-learn
+torch
+torchvision

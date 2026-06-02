@@ -200,10 +200,7 @@ if text:
                 if keyword not in detected:
                     detected.append(keyword)
 
-                    # Fix path since app.py runs from src/
-                    if video_path and not video_path.startswith("../"):
-                        video_path = "../" + video_path
-
+                    
                     if match_type == "exact":
                         badge = "🟢 Exact Match"
                         badge_color = "#2e7d32"

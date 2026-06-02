@@ -187,16 +187,16 @@ if text:
 
             # Fall back to BERT if no exact/synonym match
             if result is None:
-              result, score = semantic_match(word)
+                result, score = semantic_match(word)
 
             if result is not None:
-             match_type = "bert"
-             semantic_count += 1
+                match_type = "bert"
+                semantic_count += 1
 
             if result is not None:
                 keyword = result["keyword"]
                 video_path = result["video_path"]
-
+                video_path = video_path.replace("../", "")
                 if keyword not in detected:
                     detected.append(keyword)
 
@@ -211,7 +211,7 @@ if text:
                         badge = "🔵 Synonym Match"
                         badge_color = "#1565c0"
                     else:
-                       badge = "🧠 Semantic Match"
+                        badge = "🧠 Semantic Match"
                     badge_color = "#6a1b9a"
 
                     st.info(

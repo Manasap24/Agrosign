@@ -1,12 +1,12 @@
 import streamlit as st
-import pandas as pd
-import re
+from dataset import load_dataset
 import streamlit.components.v1 as components
 from difflib import get_close_matches
-from pathlib import Path
+from config import BASE_DIR, VIDEO_DIR
+from preprocessing import preprocess, get_variants
+from embeddings import load_model, build_embeddings
+from matching import find_match, semantic_match
 
-from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
 
 
 
@@ -19,128 +19,14 @@ st.set_page_config(
     layout="centered"
 )
 
-# ---------------------------------------------------
-# PROJECT PATHS
-# ---------------------------------------------------
-BASE_DIR  = Path(__file__).resolve().parent.parent
-VIDEO_DIR = BASE_DIR / "sign_videos"
 
-# ---------------------------------------------------
-# LOAD DATASET
-# ---------------------------------------------------
-@st.cache_data(ttl=0)
-def load_dataset():
-    try:
-        dataset_path = BASE_DIR / "dataset" / "agro_terms.csv"
-        df = pd.read_csv(dataset_path)
-        df["keyword"]    = df["keyword"].fillna("").str.lower().str.strip()
-        df["synonyms"]   = df["synonyms"].fillna("").str.lower().str.strip()
-        df["video_path"] = df["video_path"].fillna("").str.strip()
-        return df
-    except Exception as e:
-        st.error(f"Dataset loading error: {e}")
-        st.stop()
-
-df       = load_dataset()
+df = load_dataset()
 keywords = df["keyword"].tolist()
 
-# ---------------------------------------------------
-# LOAD SENTENCE-BERT MODEL
-# ---------------------------------------------------
-@st.cache_resource
-def load_model():
-    return SentenceTransformer("all-MiniLM-L6-v2")
 
 model = load_model()
-
-# ---------------------------------------------------
-# CREATE BERT EMBEDDINGS (keyword + synonyms)
-# ---------------------------------------------------
-@st.cache_resource
-def build_embeddings(_model, _df):
-    search_texts = []
-    for _, row in _df.iterrows():
-        combined = (
-            str(row["keyword"]) + " " +
-            str(row["synonyms"]).replace("|", " ")
-        )
-        search_texts.append(combined)
-    return _model.encode(search_texts)
-
 keyword_embeddings = build_embeddings(model, df)
 
-# ---------------------------------------------------
-# SIMPLE STEMMER
-# ---------------------------------------------------
-def simple_stem(word):
-    suffixes = ["ing", "tion", "ion", "ation", "ed", "er", "s", "es"]
-    for suffix in suffixes:
-        if word.endswith(suffix) and len(word) - len(suffix) >= 4:
-            return word[: -len(suffix)]
-    return word
-
-# ---------------------------------------------------
-# STOPWORDS
-# ---------------------------------------------------
-STOPWORDS = {
-    "is", "are", "the", "in", "on", "at", "of",
-    "to", "and", "a", "an", "for", "with",
-    "was", "were", "be", "been", "being",
-    "used", "using", "use", "make", "making",
-    "do", "doing", "by", "from", "into",
-    "over", "under", "between",
-    "his", "her", "their", "its",
-    "this", "that", "these", "those",
-    "get", "getting", "has", "have", "had",
-    "will", "would", "could", "should", "may", "might",
-}
-
-# ---------------------------------------------------
-# TEXT PREPROCESSING
-# ---------------------------------------------------
-def preprocess(text):
-    text   = text.lower()
-    text   = re.sub(r"[^\w\s]", "", text)
-    tokens = text.split()
-    return [t for t in tokens if t not in STOPWORDS]
-
-def get_variants(word):
-    stemmed  = simple_stem(word)
-    variants = [word]
-    if stemmed != word:
-        variants.append(stemmed)
-    return variants
-
-# ---------------------------------------------------
-# EXACT + SYNONYM MATCH
-# ---------------------------------------------------
-def find_match(word):
-    for variant in get_variants(word):
-        match = df[df["keyword"] == variant]
-        if not match.empty:
-            return match.iloc[0], "exact"
-
-        syn_match = df[
-            df["synonyms"].apply(
-                lambda x: variant in [s.strip() for s in x.split("|")]
-            )
-        ]
-        if not syn_match.empty:
-            return syn_match.iloc[0], "synonym"
-
-    return None, None
-
-# ---------------------------------------------------
-# BERT SEMANTIC MATCH
-# ---------------------------------------------------
-def semantic_match(word, threshold=0.45):
-    word_embedding = model.encode([word])
-    scores         = cosine_similarity(word_embedding, keyword_embeddings)[0]
-    best_index     = scores.argmax()
-    best_score     = scores[best_index]
-    if best_score >= threshold:
-        return df.iloc[best_index], best_score
-    return None, 0
 
 # ---------------------------------------------------
 # UI
@@ -185,11 +71,11 @@ if text:
 
         # FIRST: collect silently
         for word in tokens:
-            result, match_type = find_match(word)
+            result, match_type = find_match(word, df)
             score = None
 
             if result is None:
-                result, score = semantic_match(word)
+                result, score = semantic_match(word, model, keyword_embeddings, df)
                 if result is not None:
                     match_type     = "bert"
                     semantic_count += 1
@@ -217,65 +103,8 @@ if text:
             st.subheader("🎬 Full Sign Sequence (All Words Combined)")
             import base64
 
-            def video_to_base64(path):
-                with open(path, "rb") as f:
-                    return base64.b64encode(f.read()).decode()
 
-            playlist        = []
-            playlist_labels = []
-            for kw in detected:
-                row = df[df["keyword"] == kw]
-                if not row.empty:
-                    raw = row.iloc[0]["video_path"].strip()
-                    vp  = (BASE_DIR / raw).resolve()
-                    if vp.exists():
-                        playlist.append(str(vp))
-                        playlist_labels.append(kw)
 
-            if playlist:
-                sources_js = "[" + ",".join([f'"{video_to_base64(p)}"' for p in playlist]) + "]"
-                labels_js  = "[" + ",".join([f'"{playlist_labels[i]}"' for i in range(len(playlist))]) + "]"
-
-                html = f"""
-                <div style="text-align:center;">
-                    <div style="margin-bottom:8px;font-weight:bold;font-size:1.1em">
-                        Now Signing: <span id="label" style="color:#2e7d32"></span>
-                    </div>
-                    <video id="player" width="480" autoplay playsinline
-                        style="border-radius:12px;border:2px solid #2e7d32">
-                    </video>
-                    <div style="margin-top:8px;color:gray;font-size:0.9em">
-                        Word <span id="cur">1</span> of <span id="tot"></span>
-                    </div>
-                </div>
-                <script>
-                    const sources = {sources_js};
-                    const labels  = {labels_js};
-                    const video   = document.getElementById("player");
-                    const label   = document.getElementById("label");
-                    const cur     = document.getElementById("cur");
-                    const tot     = document.getElementById("tot");
-
-                    let index = 0;
-                    tot.textContent = sources.length;
-
-                    function playNext() {{
-                        if (index >= sources.length) index = 0;
-                        label.textContent = labels[index];
-                        cur.textContent   = index + 1;
-                        video.src = "data:video/mp4;base64," + sources[index];
-                        video.load();
-                        video.play();
-                        index++;
-                    }}
-
-                    video.addEventListener("ended", playNext);
-                    playNext();
-                </script>
-                """
-                st.components.v1.html(html, height=420)
-            else:
-                st.warning("No valid videos found for playlist.")
 
         # THIRD: individual signs below
         st.subheader("🖐️ Detected Signs")

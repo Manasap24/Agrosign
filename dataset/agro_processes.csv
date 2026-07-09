@@ -1,61 +1,73 @@
-process_id,process_name,category,description,sign_sequence
-1,Soil Preparation,Land Preparation,"Preparing agricultural land by ploughing, tilling, and leveling the soil before sowing crops to create suitable conditions for healthy plant growth.","soil|plough"
-2,Ploughing,Land Preparation,"Loosening and turning the soil using a plough or tractor to improve aeration and prepare the land for cultivation.","tractor|plough"
-3,Levelling,Land Preparation,"Making the field surface even after ploughing to create an even surface for irrigation and crop growth.","soil"
-4,Seedbed Preparation,Land Preparation,"Preparing a fine, loose, and fertile soil bed by breaking clods and removing debris before sowing seeds.","soil|seed"
-5,Land Clearing,Land Preparation,"Removing weeds and unwanted vegetation from agricultural land before cultivation to prepare the field for farming.","weed"
+
+process_id,process_name,category,description,context_examples,sign_sequence
 
 
-6,Seed Selection,Planting,"Selecting healthy, disease-free, and high-quality seeds suitable for cultivation to achieve better germination and crop yield.","seed"
+1,Soil Preparation,Land Preparation,"Preparing agricultural land by ploughing, tilling, and leveling the soil before sowing crops to create suitable conditions for healthy plant growth.","The field was prepared before sowing.;The farmer tilled the land for cultivation.;The soil was ploughed to improve aeration.;Land preparation was completed before planting.","soil|plough"
 
-7,Seed Treatment,Planting,"Treating seeds before sowing to protect them from diseases and pests and to improve germination and early plant growth.","seed|pesticide"
+2,Ploughing,Land Preparation,"Loosening and turning the soil using a plough or tractor to improve aeration and prepare the land for cultivation.","The farmer ploughed the field using a tractor.;The soil was turned before cultivation.;Ploughing improves soil aeration.;The land was ploughed before sowing.","tractor|plough"
 
-8,Seed Sowing,Planting,"Placing seeds into the prepared soil at the correct depth and spacing for healthy crop establishment.","seed|planting"
+3,Levelling,Land Preparation,"Making the field surface even after ploughing to create an even surface for irrigation and crop growth.","The field was levelled after ploughing.;Uneven land was made flat before irrigation.;Levelling helps distribute water uniformly.;The farmer levelled the field before planting.","soil"
 
-9,Transplanting,Planting,"Moving young plants from a nursery or seedbed to the main field while maintaining proper spacing for healthy crop growth.","planting|crops"
+4,Seedbed Preparation,Land Preparation,"Preparing a fine, loose, and fertile soil bed by breaking clods and removing debris before sowing seeds.","The seedbed was prepared before sowing.;The soil was made loose for seed germination.;The farmer removed stones from the field.;A proper seedbed improves germination.","soil|seed"
 
-10,Nursery Management,Planting,"Growing and caring for young plants in a nursery until they are ready for transplanting into the main field.","planting|water"
-
-
-11,Irrigation,Crop Management,"Supplying water to crops at the right time and in the required quantity using methods such as canals, sprinklers, or drip irrigation to support healthy plant growth.","irrigation|water"
-
-12,Fertilization,Crop Management,"Providing essential nutrients to crops by applying fertilizers or organic compost to improve plant growth and increase yield.","fertilizer|compost"
-
-13,Manuring,Crop Management,"Applying natural manure or compost to enrich soil fertility and improve crop productivity.","compost|soil"
-
-14,Weeding,Crop Management,"Removing unwanted weeds from agricultural fields to reduce competition for water, nutrients, and sunlight.","weed|crops"
-
-15,Mulching,Crop Management,"Covering the soil around crops with organic or inorganic materials to conserve moisture, suppress weeds, and regulate soil temperature.","mulching|soil"
-
-16,Pest Control,Crop Management,"Protecting crops from harmful insects and pests by using pesticides or other suitable control methods.","pesticide|insect"
-
-17,Disease Management,Crop Management,"Preventing and controlling plant diseases through proper crop care and timely protective measures.","crops|pesticide"
-
-18,Crop Monitoring,Crop Management,"Regularly observing crop health, growth, weather conditions, and field conditions to identify problems and ensure proper crop management.","crops|weather"
-
-19,Pruning,Crop Management,"Removing unnecessary branches or plant parts to improve plant health, growth, and productivity.","planting"
-
-20,Crop Rotation,Crop Management,"Growing different crops on the same land in successive seasons to improve soil fertility and reduce pests and diseases.","crop_rotation|crops"
-
-
-21,Harvesting,Harvest & Post-Harvest,"Collecting mature crops from the field at the right stage to obtain maximum yield and quality.","harvesting"
-
-22,Threshing,Harvest & Post-Harvest,"Separating grains from harvested crops using manual methods or threshing machines.","threshing|harvester"
-
-23,Drying,Harvest & Post-Harvest,"Reducing the moisture content of harvested crops by drying them under sunlight or using drying methods to improve storage life.","sunlight|crops"
-
-24,Storage,Harvest & Post-Harvest,"Storing harvested crops under suitable conditions to protect them from moisture, pests, and spoilage.","crops"
-
-25,Transportation,Harvest & Post-Harvest,"Moving harvested crops safely from the field to storage facilities or markets for distribution.","tractor|crops"
-
-26,Packaging,Harvest & Post-Harvest,"Packing harvested agricultural produce properly to protect it during storage and transportation.","crops"
+5,Land Clearing,Land Preparation,"Removing weeds and unwanted vegetation from agricultural land before cultivation to prepare the field for farming.","The field was cleared before cultivation.;Weeds were removed before sowing.;The farmer removed unwanted plants.;Land clearing prepared the field for farming.","weed"
 
 
 
-27,Dairy Farming,Livestock & Allied Farming,"Managing dairy animals such as cows and buffaloes to produce milk and other dairy products through proper feeding, breeding, and healthcare.","cow|dairy"
 
-28,Poultry Farming,Livestock & Allied Farming,"Raising chickens for the production of eggs and meat while ensuring proper nutrition, shelter, and disease control.","chicken"
+6,Seed Selection,Planting,"Selecting healthy, disease-free, and high-quality seeds suitable for cultivation to achieve better germination and crop yield.","Healthy seeds were selected before sowing.;The farmer chose certified seeds for cultivation.;Good quality seeds improve crop yield.;Only disease-free seeds were used for planting.","seed"
 
-29,Goat Rearing,Livestock & Allied Farming,"Breeding and managing goats for the production of milk, meat, and other agricultural benefits through proper care and feeding.","goat"
+7,Seed Treatment,Planting,"Treating seeds before sowing to protect them from diseases and pests and to improve germination and early plant growth.","Seeds were treated before sowing.;The farmer applied protective chemicals to the seeds.;Seed treatment improved germination.;Treated seeds reduced the risk of disease.","seed|pesticide"
 
-30,Cattle Management,Livestock & Allied Farming,"Managing cattle by providing proper feeding, shelter, healthcare, and breeding to improve livestock productivity.","cattle"
+8,Seed Sowing,Planting,"Placing seeds into the prepared soil at the correct depth and spacing for healthy crop establishment.","Seeds were sown in prepared soil.;The farmer planted seeds in rows.;Proper sowing ensured better germination.;Seeds were placed at the correct depth.","seed|planting"
+
+9,Transplanting,Planting,"Moving young plants from a nursery or seedbed to the main field while maintaining proper spacing for healthy crop growth.","Seedlings were transplanted into the main field.;Young plants were moved after nursery growth.;The farmer transplanted the crop with proper spacing.;Transplanting improved crop establishment.","planting|crops"
+
+10,Nursery Management,Planting,"Growing and caring for young plants in a nursery until they are ready for transplanting into the main field.","The seedlings were raised in a nursery.;Young plants were watered regularly.;The nursery was maintained before transplanting.;Healthy nursery plants produced better crops.","planting|water"
+
+
+
+
+11,Irrigation,Crop Management,"Supplying water to crops at the right time and in the required quantity using methods such as canals, sprinklers, or drip irrigation to support healthy plant growth.","The crops were irrigated regularly.;Water was supplied through drip irrigation.;The farmer irrigated the field using sprinklers.;Proper irrigation improved crop growth.","irrigation|water"
+
+12,Fertilization,Crop Management,"Providing essential nutrients to crops by applying fertilizers or organic compost to improve plant growth and increase yield.","Fertilizers were applied to improve crop growth.;The farmer added compost to the field.;Nutrients were supplied for healthy plant development.;Proper fertilization increased crop yield.","fertilizer|compost"
+
+13,Manuring,Crop Management,"Applying natural manure or compost to enrich soil fertility and improve crop productivity.","Organic compost was added to the soil.;The farmer applied compost before planting.;Manuring improved soil fertility.;Natural manure enhanced crop growth.","compost|soil"
+
+14,Weeding,Crop Management,"Removing unwanted weeds from agricultural fields to reduce competition for water, nutrients, and sunlight.","Weeds were removed from the field.;The farmer cleared unwanted plants.;Regular weeding improved crop growth.;The crop was protected from weed competition.","weed|crops"
+
+15,Mulching,Crop Management,"Covering the soil around crops with organic or inorganic materials to conserve moisture, suppress weeds, and regulate soil temperature.","Mulch was spread around the plants.;The soil was covered to retain moisture.;Mulching reduced weed growth.;The farmer used mulch to protect the crops.","mulching|soil"
+
+16,Pest Control,Crop Management,"Protecting crops from harmful insects and pests by using appropriate control methods such as pesticides, biological control, or integrated pest management.","The farmer sprayed pesticides to control insects.;Pests were controlled to protect the crop.;Insect infestation reduced crop yield.;Timely pest control improved plant health.","pesticide|insect"
+
+17,Disease Management,Crop Management,"Preventing, identifying, and controlling plant diseases through proper crop care, timely treatment, and good agricultural practices.","Diseased plants were treated promptly.;The farmer protected the crop from disease.;Plant diseases reduced crop production.;Proper disease management ensured healthy crop growth.","crops|pesticide"
+
+18,Crop Monitoring,Crop Management,"Regularly observing crop growth, field conditions, weather, and plant health to detect problems early and support effective farm management.","The farmer inspected the crop regularly.;Crop growth was monitored throughout the season.;Weather conditions were observed before irrigation.;Regular monitoring helped identify problems early.","crops|weather"
+
+19,Pruning,Crop Management,"Removing unnecessary branches, leaves, or plant parts to improve plant growth, increase productivity, and maintain plant health.","The farmer pruned the plants for better growth.;Unwanted branches were removed.;Pruning improved plant productivity.;Proper pruning encouraged healthy development.","planting"
+
+20,Crop Rotation,Crop Management,"Growing different crops on the same land in successive seasons to maintain soil fertility, reduce pests, and improve agricultural productivity.","Different crops were grown in alternate seasons.;The farmer practiced crop rotation.;Crop rotation improved soil fertility.;Changing crops reduced pest infestation.","crop_rotation|crops"
+
+
+
+21,Harvesting,Harvest & Post-Harvest,"Collecting mature crops from the field at the appropriate stage to obtain maximum yield, quality, and economic value.","The crops were harvested after reaching maturity.;The farmer harvested the field using a harvester.;Harvesting was completed before storage.;Timely harvesting improved crop quality.","harvesting"
+
+22,Threshing,Harvest & Post-Harvest,"Separating grains from harvested crops using manual methods or threshing machines to prepare them for storage and further processing.","The harvested crop was threshed to separate the grains.;A threshing machine was used after harvesting.;Threshing removed the grains from the stalks.;The farmer completed threshing before storage.","threshing|harvester"
+
+23,Drying,Harvest & Post-Harvest,"Reducing the moisture content of harvested crops by drying them naturally under sunlight or using suitable drying methods to improve storage life.","The harvested grains were dried under sunlight.;Drying reduced the moisture content of the crops.;The farmer dried the produce before storage.;Proper drying prevented spoilage during storage.","sunlight|crops"
+
+24,Storage,Harvest & Post-Harvest,"Storing harvested crops under proper conditions to protect them from moisture, insects, pests, and spoilage until they are needed.","The harvested crops were stored safely.;Proper storage reduced post-harvest losses.;The produce was protected from pests during storage.;The farmer stored the grains after drying.","crops"
+
+25,Transportation,Harvest & Post-Harvest,"Transporting harvested agricultural produce safely from farms to storage facilities, processing units, or markets while minimizing damage.","The harvested crops were transported to the market.;The farmer used a tractor to transport the produce.;Agricultural products were moved safely after harvest.;Proper transportation reduced crop losses.","tractor|crops"
+
+26,Packaging,Harvest & Post-Harvest,"Packing harvested agricultural produce using suitable materials to protect quality, improve handling, and facilitate transportation and marketing.","The harvested produce was packed before transportation.;Packaging protected the crops from damage.;The farmer packed the vegetables for market.;Proper packaging maintained product quality.","crops"
+
+
+
+27,Dairy Farming,Livestock & Allied Farming,"Managing dairy animals such as cows and buffaloes for the production of milk and other dairy products through proper feeding, breeding, healthcare, and hygiene.","The farmer raised cows for milk production.;Dairy animals were fed nutritious fodder.;Proper healthcare improved milk yield.;The dairy farm maintained healthy livestock.","cow|dairy"
+
+28,Poultry Farming,Livestock & Allied Farming,"Raising chickens under proper housing, feeding, and healthcare conditions for the production of eggs and meat.","The farmer reared chickens for egg production.;Poultry birds were provided balanced feed.;Proper poultry management reduced disease outbreaks.;Healthy chickens produced better yields.","chicken"
+
+29,Goat Rearing,Livestock & Allied Farming,"Managing and breeding goats for the production of milk, meat, and other livestock products through proper nutrition and healthcare.","The farmer raised goats for milk and meat.;Goats were provided proper shelter and feed.;Regular healthcare kept the goats healthy.;Goat rearing provided additional farm income.","goat"
+
+30,Cattle Management,Livestock & Allied Farming,"Managing cattle by providing proper nutrition, shelter, breeding, and veterinary care to improve livestock productivity and overall farm sustainability.","The cattle were provided clean drinking water.;The farmer ensured regular veterinary check-ups.;Healthy cattle improved farm productivity.;Proper cattle management increased livestock health.","cattle"

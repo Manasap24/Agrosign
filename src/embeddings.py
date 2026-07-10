@@ -1,24 +1,35 @@
-import streamlit as st
 from sentence_transformers import SentenceTransformer
+import streamlit as st
+
 
 @st.cache_resource
 def load_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
 
+import pandas as pd
 
 
-
-# ---------------------------------------------------
-# CREATE BERT EMBEDDINGS (keyword + synonyms)
-# ---------------------------------------------------
-@st.cache_resource
-def build_embeddings(_model, _df):
-    search_texts = []
-    for _, row in _df.iterrows():
-        combined = str(row["keyword"]) + " " + str(row["synonyms"]).replace("|", " ")
-        search_texts.append(combined)
-    return _model.encode(search_texts)
+def load_processes():
+    """
+    Load the agricultural process dataset.
+    """
+    return pd.read_csv("datasets/agro_processes.csv")
 
 
+def build_process_embeddings(model, df):
 
+    process_texts = []
+
+    for _, row in df.iterrows():
+
+        combined_text = (
+            f"{row['process_name']}. "
+            f"{row['description']}. "
+            f"{row['context_examples']}"
+        )
+
+        process_texts.append(combined_text)
+    embeddings = model.encode(process_texts, convert_to_tensor=True)
+
+    return df, embeddings

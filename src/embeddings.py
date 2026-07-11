@@ -1,8 +1,8 @@
 from sentence_transformers import SentenceTransformer
-import streamlit as st
+from functools import lru_cache
 
 
-@st.cache_resource
+@lru_cache(maxsize=1)
 def load_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
@@ -14,7 +14,7 @@ def load_processes():
     """
     Load the agricultural process dataset.
     """
-    return pd.read_csv("datasets/agro_processes.csv")
+    return pd.read_csv("dataset/agro_processes.csv")
 
 
 def build_process_embeddings(model, df):

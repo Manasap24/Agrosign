@@ -1,5 +1,5 @@
 from sentence_transformers import util
-
+from bart_verifier import verify_process
 from preprocessing import preprocess
 
 from embeddings import (
@@ -39,14 +39,21 @@ def detect_process(sentence):
 
     best_process, confidence = find_best_process(query_embedding)
 
+    verified, bart_score = verify_process(
+        sentence,
+        best_process["process_name"],
+    )
+
     return {
         "process_name": best_process["process_name"],
         "category": best_process["category"],
         "sign_sequence": best_process["sign_sequence"],
-        "confidence": confidence,
+        "semantic_confidence": confidence,
+        "bart_verified": verified,
+        "bart_score": bart_score,
     }
 
 
-result = detect_process("The farmer harvested mature crops.")
+result = detect_process("The farmer supplied water through drip irrigation.")
 
 print(result)

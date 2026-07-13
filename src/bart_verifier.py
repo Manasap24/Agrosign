@@ -7,16 +7,18 @@ def load_bart_model():
     return pipeline("text-classification", model="facebook/bart-large-mnli")
 
 
+classifier = load_bart_model()
+
+
 def verify_process(sentence, process_name):
     hypothesis = f"This sentence describes the agricultural process " f"{process_name}."
-    classifier = load_bart_model()
 
     result = classifier({"text": sentence, "text_pair": hypothesis})
 
-    label = result[0]["label"]
-    score = result[0]["score"]
+    label = result["label"]
+    score = result["score"]
 
-    if label == "ENTAILMENT":
+    if label.lower() == "entailment":
         return True, score
 
     return False, score

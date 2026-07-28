@@ -1,6 +1,6 @@
 from sentence_transformers import SentenceTransformer
 from functools import lru_cache
-
+from pathlib import Path
 
 @lru_cache(maxsize=1)
 def load_model():
@@ -10,11 +10,14 @@ def load_model():
 import pandas as pd
 
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 def load_processes():
     """
     Load the agricultural process dataset.
     """
-    return pd.read_csv("dataset/agro_processes.csv")
+    csv_path = BASE_DIR / "dataset" / "agro_processes.csv"
+    return pd.read_csv(csv_path)
 
 
 def build_process_embeddings(model, df):

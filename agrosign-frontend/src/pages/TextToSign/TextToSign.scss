@@ -1,0 +1,240 @@
+
+
+.text-sign{
+
+    min-height:100vh;
+margin:none;
+    background:#f7f8fa;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:flex-start;
+
+   padding-top:20px;  
+}
+
+.text-card{
+
+    // fixed 900px would overflow on smaller laptop screens — cap it instead
+    width:100%;
+    max-width:900px;
+
+    background:white;
+
+    border-radius:20px;
+
+    padding:32px;
+
+    box-shadow:0 10px 35px rgba(0,0,0,.08);
+
+    h2{
+
+       font-size:32px;
+
+        margin-bottom:25px;
+
+        color:#222;
+    }
+
+    .input-group{
+
+        margin-bottom:28px;
+
+        label{
+
+            display:block;
+
+            font-weight:600;
+
+            margin-bottom:12px;
+
+            color:#333;
+
+            // labels read better in sans-serif than the page's serif heading font
+            font-family:inherit;
+            // font-size:14px;
+        }
+
+    }
+
+    .textarea-box{
+
+        position:relative;
+
+        textarea{
+
+            // was 95% — left a permanent gap on the right and misaligned
+            // with everything else in the card. box-sizing fixes the math.
+            width:100%;
+            box-sizing:border-box;
+
+            min-height:120px;
+            max-height:280px;
+            resize:vertical; // let people expand it if they're pasting longer text
+
+            padding:16px 18px 32px; // extra bottom padding so text never sits under the counter
+            border:1px solid #ddd;
+            border-radius:14px;
+
+            font-family:inherit; // was monospace — reads oddly for plain sentences
+            font-size:15px;
+            line-height:1.5;
+            color:#222;
+
+            outline:none;
+            transition:border-color .2s ease;
+        }
+
+        textarea::placeholder{
+            color:#999;
+        }
+
+        textarea:focus{
+            border-color:#2E7D32;
+            box-shadow:0 0 0 3px rgba(46,125,50,.1);
+        }
+
+        span{
+            position:absolute;
+            right:18px;
+            bottom:14px;
+            color:#888;
+            font-size:12px;
+            pointer-events:none;
+        }
+
+    }
+
+    .select-box{
+
+        display:flex;
+        align-items:center;
+        gap:10px;
+
+        border:1px solid #ddd;
+        border-radius:14px;
+        padding:0 18px;
+        height:52px;
+
+        transition:border-color .2s ease;
+
+        &:focus-within{
+            border-color:#2E7D32;
+        }
+
+        svg{
+            color:#2E7D32;
+            flex-shrink:0;
+        }
+
+        select{
+            width:100%;
+            height:100%;
+            border:none;
+            outline:none;
+            font-size:15px;
+            font-family:inherit;
+            color:#222;
+            background:none;
+            cursor:pointer;
+        }
+
+    }
+
+    .samples{
+
+        margin-top:28px;
+
+        h4{
+            margin-bottom:14px;
+            font-size:14px;
+            font-weight:600;
+            color:#333;
+        }
+
+        .chips{
+            display:flex;
+            flex-wrap:wrap;
+            gap:12px;
+
+            button{
+                border:1px solid #b8dfb9;
+                background:#f3fcf3;
+                color:#2E7D32;
+                padding:9px 16px;
+                border-radius:10px;
+                font-size:13px;
+                font-family:inherit;
+                cursor:pointer;
+                transition:background .2s ease, color .2s ease;
+
+                &:hover{
+                    background:#2E7D32;
+                    color:white;
+                }
+
+                &:focus-visible{
+                    outline:2px solid #2E7D32;
+                    outline-offset:2px;
+                }
+            }
+        }
+
+    }
+
+    .button-area{
+
+        display:flex;
+        justify-content:flex-end;
+        margin-top:36px;
+
+        button{
+            display:flex;
+            align-items:center;
+            gap:10px;
+
+            background:#2E7D32;
+            color:white;
+            border:none;
+            padding:14px 26px;
+            border-radius:12px;
+            font-size:15px;
+            font-family:inherit;
+            cursor:pointer;
+            transition:background .2s ease, transform .2s ease, opacity .2s ease;
+
+            &:hover{
+                background:#256528;
+                transform:translateY(-2px);
+            }
+
+            // disabled state was missing — add this class in JS when the
+            // textarea is empty so people can't submit nothing
+            &:disabled{
+                background:#b7c9b8;
+                cursor:not-allowed;
+                transform:none;
+            }
+        }
+
+    }
+
+}
+
+// Card was fixed-padding at 900px on all screens — give it room to breathe
+// on mobile instead of squeezing everything to the edges.
+@media (max-width: 600px){
+    .text-sign{
+        padding:20px 12px;
+    }
+
+    .text-card{
+        padding:20px;
+
+        h2{
+            font-size:22px;
+        }
+    }
+}

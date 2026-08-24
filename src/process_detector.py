@@ -1,14 +1,13 @@
 from sentence_transformers import util
-from bart_verifier import verify_process
-from preprocessing import preprocess
 
-from embeddings import (
+from .bart_verifier import verify_process
+from .preprocessing import preprocess
+from .embeddings import (
     load_model,
     load_processes,
     build_process_embeddings,
 )
 
-# Load model and process database
 model = load_model()
 
 process_df = load_processes()
@@ -27,9 +26,13 @@ def generate_query_embedding(sentence):
 
 def find_best_process(query_embedding):
     similarity_scores = util.cos_sim(query_embedding, process_embeddings)
+
     best_index = similarity_scores.argmax().item()
+
     best_process = process_df.iloc[best_index]
+
     confidence = similarity_scores[0][best_index].item()
+
     return best_process, confidence
 
 
@@ -39,10 +42,7 @@ def detect_process(sentence):
 
     best_process, confidence = find_best_process(query_embedding)
 
-    verified, bart_score = verify_process(
-        sentence,
-        best_process["process_name"],
-    )
+    verified, bart_score = verify_process(sentence, best_process["process_name"])
 
     return {
         "process_name": best_process["process_name"],
@@ -54,6 +54,8 @@ def detect_process(sentence):
     }
 
 
-result = detect_process("The farmer supplied water through drip irrigation.")
+if __name__ == "__main__":
 
-print(result)
+    result = detect_process("The farmer supplied water through drip irrigation.")
+
+    print(result)

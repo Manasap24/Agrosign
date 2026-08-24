@@ -1,16 +1,16 @@
-from sentence_transformers import SentenceTransformer
 from functools import lru_cache
 from pathlib import Path
+
+import pandas as pd
+from sentence_transformers import SentenceTransformer
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 @lru_cache(maxsize=1)
 def load_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
-
-import pandas as pd
-
-
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 def load_processes():
     """
@@ -33,6 +33,7 @@ def build_process_embeddings(model, df):
         )
 
         process_texts.append(combined_text)
+
     embeddings = model.encode(process_texts, convert_to_tensor=True)
 
     return df, embeddings

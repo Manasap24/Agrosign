@@ -2,8 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from pathlib import Path
 
-from manual_translator import translate_manual
+from .manual_translator import translate_manual
 
 app = FastAPI(title="AgroSign API")
 
@@ -16,8 +17,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+BASE_DIR = Path(__file__).resolve().parent.parent
 # Serve videos
-app.mount("/videos", StaticFiles(directory="../sign_videos"), name="videos")
+app.mount("/videos", StaticFiles(directory=BASE_DIR / "sign_videos"), name="videos")
 
 
 class TextRequest(BaseModel):

@@ -1,6 +1,21 @@
+from functools import lru_cache
+
+from .database import db
+
 from pathlib import Path
 
-VIDEO_DIR = Path(__file__).resolve().parent.parent / "sign_videos"
+BASE_DIR = Path(__file__).resolve().parent.parent
+VIDEO_DIR = BASE_DIR / "sign_videos"
+
+
+@lru_cache(maxsize=1)
+def load_sign_videos():
+    records = list(db["agro_terms"].find({}, {"_id": 0, "keyword": 1, "video_path": 1}))
+
+    return {
+        record["keyword"].strip().lower(): record["video_path"].strip()
+        for record in records
+    }
 
 
 def generate_video_sequence(process_result):
@@ -12,12 +27,17 @@ def generate_video_sequence(process_result):
     sign_sequence = process_result["sign_sequence"]
     signs = sign_sequence.split("|")
 
+    video_mapping = load_sign_videos()
+
     video_sequence = []
 
     for sign in signs:
-        video_path = VIDEO_DIR / f"{sign}.mp4"
+        sign = sign.strip().lower()
 
-        video_sequence.append(str(video_path))
+        video_path = video_mapping.get(sign)
+
+        if video_path:
+            video_sequence.append(str(BASE_DIR / video_path))
 
     return {
         "process_name": process_result["process_name"],
@@ -27,19 +47,3 @@ def generate_video_sequence(process_result):
         "bart_verified": process_result["bart_verified"],
         "bart_score": process_result["bart_score"],
     }
-
-
-if __name__ == "__main__":
-
-    sample_result = {
-        "process_name": "Irrigation",
-        "category": "Crop Management",
-        "sign_sequence": "irrigation|water",
-        "semantic_confidence": 0.67,
-        "bart_verified": True,
-        "bart_score": 0.75,
-    }
-
-    result = generate_video_sequence(sample_result)
-
-    print(result)

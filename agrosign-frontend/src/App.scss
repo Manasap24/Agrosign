@@ -3,7 +3,19 @@
   padding: 0;
   box-sizing: border-box;
 }
-
+:root {
+  --primary: #2e7d32;
+  --primary-dark: #256528;
+  --primary-soft: #edf8eb;
+  --page-bg: #f5f7fa;
+  --surface: #fff;
+  --surface-muted: #f4f6f4;
+  --text: #202522;
+  --muted: #6f7771;
+  --border: #e6e9e6;
+  --border-strong: #cdd5ce;
+  --shadow: 0 14px 40px rgba(0, 0, 0, 0.08);
+}
 html,
 body,
 #root {
@@ -12,10 +24,105 @@ body,
   margin: 0;
   padding: 0;
 }
-
 body {
- //font-family: "Poppins", sans-serif;
-font-family: "Inter", sans-serif;
-   // font-family:inherit;
-  background: #f5f7fa;
+  font-family: "Inter", sans-serif;
+  background: var(--page-bg);
+  color: var(--text);
+  transition:
+    background 0.25s ease,
+    color 0.25s ease;
+}
+body.dark-theme {
+  --primary: #68c56f;
+  --primary-dark: #4da957;
+  --primary-soft: #18351d;
+  --page-bg: #101410;
+  --surface: #171c18;
+  --surface-muted: #202720;
+  --text: #edf3ee;
+  --muted: #aab4ab;
+  --border: #2c352e;
+  --border-strong: #3b483e;
+  --shadow: 0 14px 40px rgba(0, 0, 0, 0.28);
+}
+.app-content {
+  padding-top: 90px;
+  min-height: 100vh;
+}
+body.dark-theme .text-sign,
+body.dark-theme .speech,
+body.dark-theme .pdf-page,
+body.dark-theme .results {
+  background: var(--page-bg);
+}
+body.dark-theme .text-card,
+body.dark-theme .speech-card,
+body.dark-theme .pdf-card,
+body.dark-theme .results-card,
+body.dark-theme .playlist,
+body.dark-theme .info,
+body.dark-theme .select-box {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+body.dark-theme textarea,
+body.dark-theme select,
+body.dark-theme .text-box {
+  background: var(--surface-muted) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+body.dark-theme h2,
+body.dark-theme h3,
+body.dark-theme h4,
+body.dark-theme label {
+  color: var(--text) !important;
+}
+.app.dark-mode {
+  background: #111827;
+  color: #f3f4f6;
+  min-height: 100vh;
+
+  .home-page {
+    background: #111827;
+  }
+
+  .hero-content {
+    h1 {
+      color: #f3f4f6;
+    }
+
+    p {
+      color: #cbd5e1;
+    }
+
+    .hero-tag {
+      background: #183b22;
+      color: #7ddc8a;
+    }
+  }
+
+  .features-section {
+    h2 {
+      color: #f3f4f6;
+    }
+  }
+
+  .feature-card {
+    background: #1f2937;
+    border-color: #374151;
+
+    h3 {
+      color: #f3f4f6;
+    }
+
+    p {
+      color: #cbd5e1;
+    }
+
+    span {
+      color: #7ddc8a;
+    }
+  }
 }

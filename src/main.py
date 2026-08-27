@@ -1,12 +1,14 @@
 import os
+import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .manual_translator import translate_manual
+from .speech_to_text import speech_to_english
 
 app = FastAPI(title="AgroSign API")
 
@@ -50,3 +52,21 @@ def translate(request: TextRequest, http_request: Request):
     result["complete_video_sequence"] = video_urls
 
     return result
+
+
+@app.post("/speech-to-text")
+async def speech_to_text(file: UploadFile = File(...)):
+    suffix = Path(file.filename or "").suffix
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+        contents = await file.read()
+        temp_file.write(contents)
+        temp_path = temp_file.name
+
+    try:
+        text = speech_to_english(temp_path)
+
+        return {"text": text}
+
+    finally:
+        os.remove(temp_path)

@@ -30,20 +30,7 @@ def home():
     return {"message": "AgroSign Backend Running"}
 
 
-# @app.post("/translate")
-# def translate(request: TextRequest):
-#     result = translate_manual(request.text)
 
-#     # Convert local file paths to URLs
-#     video_urls = []
-
-#     for path in result["complete_video_sequence"]:
-#         filename = path.split("\\")[-1].split("/")[-1]
-#         video_urls.append(f"http://127.0.0.1:8000/videos/{filename}")
-
-#     result["complete_video_sequence"] = video_urls
-
-#     return result
 
 @app.post("/translate")
 def translate(request: TextRequest):
@@ -70,66 +57,6 @@ def translate(request: TextRequest):
     result["process_sequence"] = process_list
 
     return result
-# from fastapi import UploadFile, File, Form, HTTPException
-# from pathlib import Path
-# import shutil
-# import tempfile
-
-# from speech_to_text.vosk_hindi import transcribe_hindi
-# from speech_to_text.faster_whisper_english import transcribe_english
-# from speech_to_text.translate_hindi_to_english import translate_hindi_to_english
-
-
-# @app.post("/speech-to-text")
-# async def speech_to_text(
-#     file: UploadFile = File(...),
-#     language: str = Form(...)
-# ):
-#     temp_path = None
-
-#     try:
-#         # Save uploaded file temporarily
-#         suffix = Path(file.filename).suffix
-
-#         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-#             shutil.copyfileobj(file.file, tmp)
-#             temp_path = tmp.name
-
-#         # Hindi
-#         if language.lower() == "hindi":
-#             hindi_text = transcribe_hindi(temp_path)
-#             english_text = translate_hindi_to_english(hindi_text)
-
-#             return {
-#                 "language": "hindi",
-#                 "transcript": hindi_text,
-#                 "translation": english_text
-#             }
-
-#         # English
-#         elif language.lower() == "english":
-#             english_text = transcribe_english(temp_path)
-
-#             return {
-#                 "language": "english",
-#                 "transcript": english_text,
-#                 "translation": english_text
-#             }
-
-#         # Kannada placeholder
-#         elif language.lower() == "kannada":
-#             raise HTTPException(status_code=400, detail="Kannada model not implemented yet")
-
-#         else:
-#             raise HTTPException(status_code=400, detail="Unsupported language")
-
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
-#     finally:
-#         if temp_path:
-#             Path(temp_path).unlink(missing_ok=True)
-
 
 from fastapi import UploadFile, File, Form, HTTPException
 from pathlib import Path
@@ -188,3 +115,47 @@ async def speech_to_text(
     finally:
         if temp_path:
             Path(temp_path).unlink(missing_ok=True)
+
+
+from fastapi import WebSocket
+import json
+
+from speech_to_text.vosk_hindi_live import create_recognizer
+from speech_to_text.translate_hindi_to_english import translate_hindi_to_english
+
+
+@app.websocket("/ws/hindi-live")
+async def hindi_live(websocket: WebSocket):
+
+    await websocket.accept()
+
+    recognizer = create_recognizer()
+
+    try:
+
+        while True:
+
+            data = await websocket.receive_bytes()
+
+            if recognizer.AcceptWaveform(data):
+
+                result = json.loads(
+                    recognizer.Result()
+                )
+
+                hindi_text = result.get("text", "").strip()
+
+                if hindi_text:
+
+                    english_text = translate_hindi_to_english(
+                        hindi_text
+                    )
+
+                    await websocket.send_json({
+                        "hindi_text": hindi_text,
+                        "english_text": english_text
+                    })
+
+    except Exception as e:
+
+        print("WebSocket closed:", e)

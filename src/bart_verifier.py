@@ -1,24 +1,35 @@
 from functools import lru_cache
+
 from transformers import pipeline
 
 
 @lru_cache(maxsize=1)
 def load_bart_model():
-    return pipeline("text-classification", model="facebook/bart-large-mnli")
+    return pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
 
 classifier = load_bart_model()
 
 
-def verify_process(sentence, process_name):
-    hypothesis = f"This sentence describes the agricultural process " f"{process_name}."
+def classify_processes(sentence, process_names):
 
-    result = classifier({"text": sentence, "text_pair": hypothesis})
+    if not process_names:
+        return {}
 
-    label = result["label"]
-    score = result["score"]
+    result = classifier(
+        sentence,
+        candidate_labels=process_names,
+        multi_label=False,
+        hypothesis_template=("The agricultural process described is {}."),
+    )
 
-    if label.lower() == "entailment":
-        return True, score
+    return dict(zip(result["labels"], result["scores"]))
 
-    return False, score
+
+def verify_process(sentence, process_name, description="", context_examples=""):
+
+    result = classify_processes(sentence, [process_name])
+
+    score = result.get(process_name, 0.0)
+
+    return score >= 0.50, score

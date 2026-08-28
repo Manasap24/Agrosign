@@ -28,7 +28,7 @@ process_id,process_name,category,description,context_examples,sign_sequence
 
 
 
-11,Irrigation,Crop Management,"Supplying water to crops at the right time and in the required quantity using methods such as canals, sprinklers, or drip irrigation to support healthy plant growth.","The crops were irrigated regularly.;Water was supplied through drip irrigation.;The farmer irrigated the field using sprinklers.;Proper irrigation improved crop growth.","irrigation|water"
+11,Irrigation,Crop Management,"Supplying water to crops at the right time and in the required quantity using methods such as canals, sprinklers, or drip irrigation to support healthy plant growth.","The farmer irrigated the crops regularly.;The farmer supplied water to the crops.;The crops received water regularly.;The farmer watered the field to support crop growth.",irrigation|water"
 
 12,Fertilization,Crop Management,"Providing essential nutrients to crops by applying fertilizers or organic compost to improve plant growth and increase yield.","Fertilizers were applied to improve crop growth.;The farmer added compost to the field.;Nutrients were supplied for healthy plant development.;Proper fertilization increased crop yield.","fertilizer|compost"
 

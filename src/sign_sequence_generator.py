@@ -1,8 +1,6 @@
 from functools import lru_cache
-
-from .database import db
-
 from pathlib import Path
+import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 VIDEO_DIR = BASE_DIR / "sign_videos"
@@ -10,19 +8,18 @@ VIDEO_DIR = BASE_DIR / "sign_videos"
 
 @lru_cache(maxsize=1)
 def load_sign_videos():
-    records = list(db["agro_terms"].find({}, {"_id": 0, "keyword": 1, "video_path": 1}))
+    terms_path = BASE_DIR / "dataset" / "agro_terms.csv"
+
+    df = pd.read_csv(terms_path)
 
     return {
-        record["keyword"].strip().lower(): record["video_path"].strip()
-        for record in records
+        row["keyword"].strip().lower(): row["video_path"].strip()
+        for _, row in df.iterrows()
+        if row["keyword"] and row["video_path"]
     }
 
 
 def generate_video_sequence(process_result):
-    """
-    Generate the ordered list of sign video paths
-    for the detected agricultural process.
-    """
 
     sign_sequence = process_result["sign_sequence"]
     signs = sign_sequence.split("|")

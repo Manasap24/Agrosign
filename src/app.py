@@ -1,23 +1,14 @@
-import streamlit as st
 from dataset import load_dataset
-import streamlit.components.v1 as components
+
 from difflib import get_close_matches
 from config import BASE_DIR, VIDEO_DIR
 from preprocessing import preprocess, get_variants
 from embeddings import load_model, build_embeddings
 
-
-
-
-
 # ---------------------------------------------------
 # PAGE SETTINGS
 # ---------------------------------------------------
-st.set_page_config(
-    page_title="AgroSign AI",
-    page_icon="🌾",
-    layout="centered"
-)
+st.set_page_config(page_title="AgroSign AI", page_icon="🌾", layout="centered")
 
 
 df = load_dataset()
@@ -64,10 +55,10 @@ if text:
     else:
         st.markdown(f"**🔤 Preprocessed tokens:** `{' → '.join(tokens)}`")
 
-        detected       = []
-        unknown_words  = []
+        detected = []
+        unknown_words = []
         semantic_count = 0
-        match_info     = {}
+        match_info = {}
 
         # FIRST: collect silently
         for word in tokens:
@@ -77,24 +68,26 @@ if text:
             if result is None:
                 result, score = semantic_match(word, model, keyword_embeddings, df)
                 if result is not None:
-                    match_type     = "bert"
+                    match_type = "bert"
                     semantic_count += 1
 
             if result is not None:
-                keyword        = result["keyword"]
+                keyword = result["keyword"]
                 raw_video_path = result["video_path"].strip()
-                video_path     = (BASE_DIR / raw_video_path).resolve()
+                video_path = (BASE_DIR / raw_video_path).resolve()
 
                 if keyword not in detected:
                     detected.append(keyword)
                     match_info[keyword] = {
                         "match_type": match_type,
-                        "video_path": video_path
+                        "video_path": video_path,
                     }
             else:
                 suggestion = get_close_matches(word, keywords, n=1, cutoff=0.6)
                 if suggestion:
-                    st.warning(f"No sign for **'{word}'**. Did you mean: **{suggestion[0]}**?")
+                    st.warning(
+                        f"No sign for **'{word}'**. Did you mean: **{suggestion[0]}**?"
+                    )
                 else:
                     unknown_words.append(word)
 
@@ -103,24 +96,21 @@ if text:
             st.subheader("🎬 Full Sign Sequence (All Words Combined)")
             import base64
 
-
-
-
         # THIRD: individual signs below
         st.subheader("🖐️ Detected Signs")
         for kw in detected:
-            info       = match_info[kw]
+            info = match_info[kw]
             match_type = info["match_type"]
             video_path = info["video_path"]
 
             if match_type == "exact":
-                badge       = "🟢 Exact Match"
+                badge = "🟢 Exact Match"
                 badge_color = "#2e7d32"
             elif match_type == "synonym":
-                badge       = "🔵 Synonym Match"
+                badge = "🔵 Synonym Match"
                 badge_color = "#1565c0"
             else:
-                badge       = "🧠 Semantic Match"
+                badge = "🧠 Semantic Match"
                 badge_color = "#6a1b9a"
 
             st.markdown(
@@ -148,16 +138,15 @@ if text:
         # ---------------------------------------------------
         st.subheader("📊 Pipeline Summary")
         col1, col2, col3 = st.columns(3)
-        col1.metric("Signs Detected",   len(detected))
+        col1.metric("Signs Detected", len(detected))
         col2.metric("Semantic Matches", semantic_count)
-        col3.metric("Unknown Words",    len(unknown_words))
+        col3.metric("Unknown Words", len(unknown_words))
 
         if detected:
             st.success(f"✅ Detected Keywords: **{', '.join(detected)}**")
 
         with st.expander("🔬 How the pipeline works"):
-            st.markdown(
-                """
+            st.markdown("""
 **Step 1 — Preprocessing**
 - Lowercasing → Punctuation removal → Tokenization → Stopword removal
 
@@ -175,5 +164,4 @@ Examples:
 
 **Step 4 — Fuzzy Fallback**
 - `difflib.get_close_matches` for typo-tolerant suggestions
-                """
-            )
+                """)

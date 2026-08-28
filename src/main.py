@@ -38,18 +38,26 @@ def home():
 
 
 @app.post("/translate")
-def translate(request: TextRequest, http_request: Request):
+def translate(request: TextRequest):
     result = translate_manual(request.text)
 
+    # Convert local file paths to URLs
     video_urls = []
-
-    base_url = str(http_request.base_url).rstrip("/")
 
     for path in result["complete_video_sequence"]:
         filename = path.split("\\")[-1].split("/")[-1]
-        video_urls.append(f"{base_url}/videos/{filename}")
+        video_urls.append(f"http://127.0.0.1:8000/videos/{filename}")
 
+    # Get ALL detected processes from translations
+    process_list = [
+        item["process_name"]
+        for item in result["translations"]
+        if item.get("process_name")
+    ]
+
+    # Update response
     result["complete_video_sequence"] = video_urls
+    result["process_sequence"] = process_list
 
     return result
 

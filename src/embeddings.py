@@ -1,9 +1,10 @@
 from functools import lru_cache
+from pathlib import Path
 
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 
-from .database import db
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 @lru_cache(maxsize=1)
@@ -12,30 +13,27 @@ def load_model():
 
 
 def load_processes():
-    records = list(db["agro_processes"].find({}, {"_id": 0}))
 
-    df = pd.DataFrame(records)
+    processes_path = BASE_DIR / "dataset" / "agro_processes.csv"
+
+    df = pd.read_csv(processes_path)
 
     if df.empty:
-        raise ValueError("No agricultural processes found in MongoDB.")
+        raise ValueError("No agricultural processes found in CSV.")
 
     return df
 
 
 def build_process_embeddings(model, df):
 
-    process_texts = []
+    process_embeddings = []
 
     for _, row in df.iterrows():
 
-        combined_text = (
-            f"{row['process_name']}. "
-            f"{row['description']}. "
-            f"{row['context_examples']}"
-        )
+        text = f"{row['process_name']}. " f"{row['description']}"
 
-        process_texts.append(combined_text)
+        embedding = model.encode(text, convert_to_tensor=True)
 
-    embeddings = model.encode(process_texts, convert_to_tensor=True)
+        process_embeddings.append(embedding)
 
-    return df, embeddings
+    return (df, process_embeddings)

@@ -1,14 +1,16 @@
+from pathlib import Path
 import pandas as pd
-from .database import db
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def load_dataset():
-    records = list(db["agro_terms"].find({}, {"_id": 0}))
+    terms_path = BASE_DIR / "dataset" / "agro_terms.csv"
 
-    df = pd.DataFrame(records)
+    df = pd.read_csv(terms_path)
 
     if df.empty:
-        raise ValueError("No agricultural terms found in MongoDB.")
+        raise ValueError("No agricultural terms found in CSV.")
 
     df["keyword"] = df["keyword"].fillna("").str.lower().str.strip()
     df["synonyms"] = df["synonyms"].fillna("").str.lower().str.strip()

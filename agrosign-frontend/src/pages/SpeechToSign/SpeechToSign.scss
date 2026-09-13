@@ -351,3 +351,63 @@
         transform:translateY(0);
     }
 }
+
+// Add these rules into your existing SpeechToSign.scss
+// (alongside wherever .result is currently styled).
+
+.live-results {
+  margin-top: 1rem;
+
+  .live-results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+
+    h3 {
+      margin: 0;
+    }
+
+    .clear-live {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: none;
+      border: 1px solid currentColor;
+      border-radius: 6px;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      opacity: 0.75;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+}
+
+.live-transcript-box {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.04);
+  line-height: 1.5;
+
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .partial-text {
+    opacity: 0.55;
+    font-style: italic;
+  }
+
+  .placeholder {
+    opacity: 0.5;
+    font-style: italic;
+  }
+}

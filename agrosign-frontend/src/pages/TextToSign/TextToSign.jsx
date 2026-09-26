@@ -1,40 +1,79 @@
+
+
+
 // import "./TextToSign.scss";
 // import { useState } from "react";
+// import { useNavigate } from "react-router-dom";
 // import {
 //   FiGlobe,
 //   FiArrowRight,
-//   FiFileText
+//   FiFileText,
 // } from "react-icons/fi";
 
 // function TextToSign() {
+//   const navigate = useNavigate();
 
 //   const [text, setText] = useState("");
 //   const [language, setLanguage] = useState("english");
+//   const [loading, setLoading] = useState(false);
+//   const [error, setError] = useState("");
 
 //   const examples = [
 //     "Farmer irrigates the field.",
 //     "Use pesticide carefully.",
 //     "Harvest crops.",
-//     "Tractor helps in plowing."
+//     "Tractor helps in plowing.",
 //   ];
 
-//   const handleConvert = () => {
-//     console.log(text);
+//   const handleConvert = async () => {
+//     if (!text.trim()) {
+//       setError("Please enter some text.");
+//       return;
+//     }
+
+//     setLoading(true);
+//     setError("");
+
+//     try {
+//       const response = await fetch("http://127.0.0.1:8000/translate", {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify({
+//           text: text,
+//           language: language,
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error("Backend Error");
+//       }
+
+//       const result = await response.json();
+
+//       console.log(result);
+
+//       navigate("/results", {
+//         state: result,
+//       });
+//     } catch (err) {
+//       console.error(err);
+//       setError("Unable to connect to backend.");
+//     } finally {
+//       setLoading(false);
+//     }
 //   };
 
 //   return (
 //     <section className="text-sign">
-
 //       <div className="text-card">
-
 //         <h2>Text to Sign</h2>
 
 //         <div className="input-group">
-
 //           <label>Enter your text</label>
 
 //           <div className="textarea-box">
-
 //             <textarea
 //               placeholder="Type agricultural text..."
 //               maxLength={500}
@@ -43,69 +82,67 @@
 //             />
 
 //             <span>{text.length}/500</span>
-
 //           </div>
-
 //         </div>
 
 //         <div className="input-group">
-
 //           <label>Select Language</label>
 
 //           <div className="select-box">
-
 //             <FiGlobe />
 
-//             <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-
+//             <select
+//               value={language}
+//               onChange={(e) => setLanguage(e.target.value)}
+//             >
 //               <option value="english">English</option>
 //               <option value="hindi">Hindi</option>
 //               <option value="kannada">Kannada</option>
-              
-
 //             </select>
-
 //           </div>
-
 //         </div>
 
-//        {/* <div className="samples">
+//         {/* Sample Inputs */}
 
+//         {/* 
+//         <div className="samples">
 //           <h4>Sample Inputs</h4>
 
 //           <div className="chips">
-
 //             {examples.map((item, index) => (
-
 //               <button
 //                 key={index}
 //                 onClick={() => setText(item)}
 //               >
 //                 {item}
 //               </button>
-
 //             ))}
-
 //           </div>
-
-//         </div> */}
+//         </div>
+//         */}
 
 //         <div className="button-area">
-
-//           <button onClick={handleConvert}>
-
+//           <button onClick={handleConvert} disabled={loading}>
 //             <FiFileText />
 
-//             Convert to Sign
+//             {loading ? "Converting..." : "Convert to Sign"}
 
 //             <FiArrowRight />
-
 //           </button>
-
 //         </div>
 
+//         {error && (
+//           <p
+//             style={{
+//               color: "red",
+//               marginTop: "15px",
+//               textAlign: "center",
+//             }}
+//           >
+//             {error}
+//           </p>
+//         )}
 //       </div>
-
 //     </section>
 //   );
 // }
@@ -120,7 +157,10 @@ import {
   FiGlobe,
   FiArrowRight,
   FiFileText,
+  FiRepeat,
 } from "react-icons/fi";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 function TextToSign() {
   const navigate = useNavigate();
@@ -128,6 +168,7 @@ function TextToSign() {
   const [text, setText] = useState("");
   const [language, setLanguage] = useState("english");
   const [loading, setLoading] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [error, setError] = useState("");
 
   const examples = [
@@ -136,6 +177,52 @@ function TextToSign() {
     "Harvest crops.",
     "Tractor helps in plowing.",
   ];
+
+  // Translate button only makes sense for languages the sign-conversion
+  // pipeline can't read directly -- it expects English text.
+  const needsTranslation = language === "hindi" || language === "kannada";
+
+  const handleTranslate = async () => {
+    if (!text.trim()) {
+      setError("Please enter some text to translate.");
+      return;
+    }
+
+    setTranslating(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_BASE}/translate-text`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: text,
+          language: language,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Translation failed");
+      }
+
+      const result = await response.json();
+
+      setText(result.translated_text || "");
+
+      // The sign-conversion step expects English text -- switch the
+      // selector so it's clear what will actually be submitted next.
+      setLanguage("english");
+
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Unable to translate text.");
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const handleConvert = async () => {
     if (!text.trim()) {
@@ -147,7 +234,7 @@ function TextToSign() {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/translate", {
+      const response = await fetch(`${API_BASE}/translate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -205,7 +292,10 @@ function TextToSign() {
 
             <select
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={(e) => {
+                setLanguage(e.target.value);
+                setError("");
+              }}
             >
               <option value="english">English</option>
               <option value="hindi">Hindi</option>
@@ -233,8 +323,20 @@ function TextToSign() {
         </div>
         */}
 
-        <div className="button-area">
-          <button onClick={handleConvert} disabled={loading}>
+        <div className={`button-area ${needsTranslation ? "with-translate" : ""}`}>
+          {needsTranslation && (
+            <button
+              className="translate-btn"
+              onClick={handleTranslate}
+              disabled={translating || loading}
+              type="button"
+            >
+              <FiRepeat />
+              {translating ? "Translating..." : "Translate to English"}
+            </button>
+          )}
+
+          <button onClick={handleConvert} disabled={loading || translating}>
             <FiFileText />
 
             {loading ? "Converting..." : "Convert to Sign"}

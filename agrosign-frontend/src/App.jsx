@@ -1,31 +1,36 @@
-import Navbar from "./components/Navbar/Navbar";
 import { Routes, Route } from "react-router-dom";
-import "./App.scss";
-// import Home from "./pages/Home";
-// import About from "./pages/About";
-// import Contact from "./pages/Contact";
+import { useState } from "react";
+import Navbar from "./components/Navbar/Navbar";
+import Home from "./pages/Home/Home";
 import TextToSign from "./pages/TextToSign/TextToSign";
-import PDFToSign from "./pages/PDFToSign/PDFToSign"; 
-import Results from "./pages/Results/Results";
 import SpeechToSign from "./pages/SpeechToSign/SpeechToSign";
+import PdfToSign from "./pages/PDFtoSign/PDFtoSign";
+import Results from "./pages/Results/Results";
+import "./App.scss";
+
 function App() {
+  const [darkMode, setDarkMode] = useState(
+    localStorage.getItem("darkMode") === "true",
+  );
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem("darkMode", newMode);
+  };
+
   return (
-    <>
-      <Navbar />
+    <div className={darkMode ? "app dark-mode" : "app"}>
+      <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
 
-      <div style={{ paddingTop: "90px" }}>
-        <Routes>
-           <Route path="/text" element={<TextToSign />} />
-             <Route path="/speech" element={<SpeechToSign />} />
-   <Route path="/pdf" element={<PDFToSign />} />
-   <Route path="/results" element={<Results />} />
-
-          {/* <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} /> */}
-        </Routes>
-      </div>
-    </>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/text" element={<TextToSign />} />
+        <Route path="/speech" element={<SpeechToSign />} />
+        <Route path="/pdf" element={<PdfToSign />} />
+        <Route path="/results" element={<Results />} />
+      </Routes>
+    </div>
   );
 }
 

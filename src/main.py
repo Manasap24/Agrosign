@@ -1,11 +1,7 @@
-
-
-
-
-
 import json
 import shutil
 import tempfile
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -33,10 +29,16 @@ from speech_to_text.english_live import (
     SAMPLE_RATE as WHISPER_SAMPLE_RATE,
 )
 
+from speech_to_text.kannada.kannada_recorded import transcribe_kannada
+from speech_to_text.kannada.kannada_live import (
+    transcribe_kannada_audio,
+    SAMPLE_RATE as KANNADA_SAMPLE_RATE,
+)
+from speech_to_text.kannada.kannada_to_english import (
+    translate_kannada_to_english,
+)
 
-# ---------------------------------------------------------------------------
-# App setup — ONE FastAPI instance, everything registers on this.
-# ---------------------------------------------------------------------------
+
 app = FastAPI(title="AgroSign API")
 
 app.add_middleware(
@@ -47,10 +49,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve videos
 app.mount("/videos", StaticFiles(directory="../sign_videos"), name="videos")
 
-CHUNK_SECONDS = 3  # how much audio to buffer before running Whisper on English
+CHUNK_SECONDS = 3
 
 
 class TextRequest(BaseModel):
@@ -66,44 +67,12 @@ def home():
 # ---------------------------------------------------------------------------
 # TEXT -> SIGN
 # ---------------------------------------------------------------------------
-# @app.post("/translate")
-# def translate(request: TextRequest):
-#     result = translate_manual(request.text)
-
-#     # Convert local file paths to URLs
-#     video_urls = []
-
-#     for path in result["complete_video_sequence"]:
-#         filename = path.split("\\")[-1].split("/")[-1]
-#         video_urls.append(
-#             f"http://127.0.0.1:8000/videos/{filename}"
-#         )
-
-#     # Get ALL detected processes from translations
-#     process_list = [
-#         item["process_name"]
-#         for item in result["translations"]
-#         if item.get("process_name")
-#     ]
-
-#     result["complete_video_sequence"] = video_urls
-#     result["process_sequence"] = process_list
-
-#     return result
-
-# ---------------------------------------------------------------------------
-# TEXT -> SIGN  (auto-translates Hindi/Kannada input to English first)
-# ---------------------------------------------------------------------------
 @app.post("/translate")
 def translate(request: TextRequest, http_request: Request):
 
     lang = request.language.strip().lower()
 
-    # For Hindi and Kannada, translate to English first.
-    # translate_hindi_to_english uses source="auto" internally, so it
-    # auto-detects the input language -- it works for Kannada too, not
-    # just Hindi, despite the function name.
-    if lang in ("hindi", "kannada"):
+    if lang == "hindi":
         english_text = translate_hindi_to_english(request.text)
 
         if not english_text:
@@ -111,12 +80,21 @@ def translate(request: TextRequest, http_request: Request):
                 status_code=500,
                 detail=f"Translation from {request.language} failed, please try again",
             )
+
+    elif lang == "kannada":
+        english_text = translate_kannada_to_english(request.text)
+
+        if not english_text:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Translation from {request.language} failed, please try again",
+            )
+
     else:
         english_text = request.text
 
     result = translate_manual(english_text)
 
-    # Convert local file paths to URLs
     video_urls = []
 
     base_url = str(http_request.base_url).rstrip("/")
@@ -127,7 +105,6 @@ def translate(request: TextRequest, http_request: Request):
             f"{base_url}/videos/{filename}"
         )
 
-    # Get ALL detected processes from translations
     process_list = [
         item["process_name"]
         for item in result["translations"]
@@ -136,21 +113,17 @@ def translate(request: TextRequest, http_request: Request):
 
     result["complete_video_sequence"] = video_urls
     result["process_sequence"] = process_list
-
-    # include the translated English text too, so the frontend can show
-    # what was actually converted (useful for Hindi/Kannada input)
     result["translated_input"] = english_text
 
     return result
 
 
 # ---------------------------------------------------------------------------
-# HINDI / KANNADA TEXT -> ENGLISH TEXT (standalone, used by the
-# "Translate to English" button before the user hits Convert to Sign)
+# HINDI / KANNADA TEXT -> ENGLISH TEXT
 # ---------------------------------------------------------------------------
 class TranslateTextRequest(BaseModel):
     text: str
-    language: str  # "hindi" or "kannada"
+    language: str
 
 
 @app.post("/translate-text")
@@ -170,9 +143,11 @@ def translate_text_endpoint(request: TranslateTextRequest):
             detail="No text provided to translate",
         )
 
-    # Same translate_hindi_to_english function -- source="auto" means it
-    # auto-detects the language, so it works for Kannada text too.
-    translated = translate_hindi_to_english(request.text)
+    if lang == "hindi":
+        translated = translate_hindi_to_english(request.text)
+
+    else:
+        translated = translate_kannada_to_english(request.text)
 
     if not translated:
         raise HTTPException(
@@ -180,28 +155,48 @@ def translate_text_endpoint(request: TranslateTextRequest):
             detail="Translation failed, please try again",
         )
 
-    return {"translated_text": translated}
+    return {
+        "translated_text": translated
+    }
+
+
 # ---------------------------------------------------------------------------
-# FILE UPLOAD -> SPEECH TO TEXT (non-live, existing feature)
+# FILE UPLOAD -> SPEECH TO TEXT
 # ---------------------------------------------------------------------------
 @app.post("/speech-to-text")
 async def speech_to_text(
     file: UploadFile = File(...),
     language: str = Form(...)
 ):
+
     temp_path = None
 
     try:
+
         suffix = Path(file.filename).suffix
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            shutil.copyfileobj(file.file, tmp)
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        ) as tmp:
+
+            shutil.copyfileobj(
+                file.file,
+                tmp
+            )
+
             temp_path = tmp.name
 
-        # Hindi -> transcript in Hindi + translation in English
+        # Hindi
         if language.lower() == "hindi":
-            hindi_text = transcribe_hindi(temp_path)
-            english_text = translate_hindi_to_english(hindi_text)
+
+            hindi_text = transcribe_hindi(
+                temp_path
+            )
+
+            english_text = translate_hindi_to_english(
+                hindi_text
+            )
 
             return {
                 "language": "hindi",
@@ -209,9 +204,12 @@ async def speech_to_text(
                 "translation": english_text
             }
 
-        # English -> just the English transcript, no translation needed
+        # English
         elif language.lower() == "english":
-            english_text = transcribe_english(temp_path)
+
+            english_text = transcribe_english(
+                temp_path
+            )
 
             return {
                 "language": "english",
@@ -219,22 +217,56 @@ async def speech_to_text(
                 "translation": None
             }
 
+        # Kannada
         elif language.lower() == "kannada":
-            raise HTTPException(status_code=400, detail="Kannada model not implemented yet")
+
+            kannada_text = transcribe_kannada(
+                temp_path
+            )
+
+            english_text = translate_kannada_to_english(
+                kannada_text
+            )
+
+            return {
+                "language": "kannada",
+                "transcript": kannada_text,
+                "translation": english_text
+            }
 
         else:
-            raise HTTPException(status_code=400, detail="Unsupported language")
+
+            raise HTTPException(
+                status_code=400,
+                detail="Unsupported language"
+            )
+
+    except HTTPException:
+        raise
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+        # TEMPORARY DEBUG: prints the full traceback to the terminal so
+        # we can see exactly which line/error is causing the 500,
+        # instead of only the generic message in the HTTP response.
+        # Safe to remove once the real issue is found and fixed.
+        traceback.print_exc()
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
     finally:
+
         if temp_path:
-            Path(temp_path).unlink(missing_ok=True)
+            Path(temp_path).unlink(
+                missing_ok=True
+            )
 
 
 # ---------------------------------------------------------------------------
-# LIVE HINDI  (Vosk streaming ASR + Hindi -> English translation)
+# LIVE HINDI
 # ---------------------------------------------------------------------------
 @app.websocket("/live-hindi")
 async def live_hindi(websocket: WebSocket):
@@ -272,7 +304,10 @@ async def live_hindi(websocket: WebSocket):
 
                 if hindi_text:
 
-                    print("Hindi:", hindi_text)
+                    print(
+                        "Hindi:",
+                        hindi_text
+                    )
 
                     try:
 
@@ -343,7 +378,124 @@ async def live_hindi(websocket: WebSocket):
 
 
 # ---------------------------------------------------------------------------
-# LIVE ENGLISH  (faster-whisper, buffered streaming ASR)
+# LIVE KANNADA
+# ---------------------------------------------------------------------------
+@app.websocket("/live-kannada")
+async def live_kannada(websocket: WebSocket):
+
+    await websocket.accept()
+
+    print("React connected to live Kannada")
+
+    buffer = np.empty(
+        (0,),
+        dtype=np.float32
+    )
+
+    try:
+
+        await websocket.send_json({
+            "type": "connected",
+            "message": "Live Kannada speech recognition started"
+        })
+
+        while True:
+
+            audio_data = await websocket.receive_bytes()
+
+            if not audio_data:
+                continue
+
+            pcm16 = np.frombuffer(
+                audio_data,
+                dtype=np.int16
+            )
+
+            audio_f32 = (
+                pcm16.astype(np.float32)
+                / 32768.0
+            )
+
+            buffer = np.concatenate(
+                (
+                    buffer,
+                    audio_f32
+                )
+            )
+
+            if len(buffer) >= (
+                KANNADA_SAMPLE_RATE
+                * CHUNK_SECONDS
+            ):
+
+                kannada_text = transcribe_kannada_audio(
+                    buffer
+                )
+
+                if kannada_text:
+
+                    print(
+                        "Kannada:",
+                        kannada_text
+                    )
+
+                    try:
+
+                        english_text = translate_kannada_to_english(
+                            kannada_text
+                        )
+
+                    except Exception as e:
+
+                        print(
+                            "Kannada translation error:",
+                            e
+                        )
+
+                        english_text = ""
+
+                    print(
+                        "English:",
+                        english_text
+                    )
+
+                    await websocket.send_json({
+                        "type": "final",
+                        "kannada": kannada_text,
+                        "english": english_text
+                    })
+
+                buffer = np.empty(
+                    (0,),
+                    dtype=np.float32
+                )
+
+    except WebSocketDisconnect:
+
+        print(
+            "React disconnected from live Kannada"
+        )
+
+    except Exception as e:
+
+        print(
+            "Live Kannada error:",
+            e
+        )
+
+        try:
+
+            await websocket.send_json({
+                "type": "error",
+                "error": str(e)
+            })
+
+        except Exception:
+            pass
+
+
+# ---------------------------------------------------------------------------
+# LIVE ENGLISH
 # ---------------------------------------------------------------------------
 @app.websocket("/live-english")
 async def live_english(websocket: WebSocket):
@@ -352,7 +504,10 @@ async def live_english(websocket: WebSocket):
 
     print("React connected to live English")
 
-    buffer = np.empty((0,), dtype=np.float32)
+    buffer = np.empty(
+        (0,),
+        dtype=np.float32
+    )
 
     try:
 
@@ -368,27 +523,48 @@ async def live_english(websocket: WebSocket):
             if not audio_data:
                 continue
 
-            # Incoming bytes are 16-bit PCM (little-endian) at 16kHz,
-            # matching what the frontend downsamples to for /live-hindi too.
-            pcm16 = np.frombuffer(audio_data, dtype=np.int16)
-            audio_f32 = pcm16.astype(np.float32) / 32768.0
+            pcm16 = np.frombuffer(
+                audio_data,
+                dtype=np.int16
+            )
 
-            buffer = np.concatenate((buffer, audio_f32))
+            audio_f32 = (
+                pcm16.astype(np.float32)
+                / 32768.0
+            )
 
-            if len(buffer) >= WHISPER_SAMPLE_RATE * CHUNK_SECONDS:
+            buffer = np.concatenate(
+                (
+                    buffer,
+                    audio_f32
+                )
+            )
 
-                text = transcribe_audio(buffer)
+            if len(buffer) >= (
+                WHISPER_SAMPLE_RATE
+                * CHUNK_SECONDS
+            ):
+
+                text = transcribe_audio(
+                    buffer
+                )
 
                 if text:
 
-                    print("English:", text)
+                    print(
+                        "English:",
+                        text
+                    )
 
                     await websocket.send_json({
                         "type": "final",
                         "english": text
                     })
 
-                buffer = np.empty((0,), dtype=np.float32)
+                buffer = np.empty(
+                    (0,),
+                    dtype=np.float32
+                )
 
     except WebSocketDisconnect:
 

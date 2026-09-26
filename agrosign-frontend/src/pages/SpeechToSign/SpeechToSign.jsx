@@ -1,263 +1,5 @@
 
 
-// import "./SpeechToSign.scss";
-// import { useState, useEffect } from "react";
-// import { useNavigate } from "react-router-dom";
-// import {
-//   FiMic,
-//   FiStopCircle,
-//   FiUpload,
-//   FiArrowRight,
-//   FiGlobe,
-// } from "react-icons/fi";
-
-// const API_BASE = "http://127.0.0.1:8000";
-
-// function SpeechToSign() {
-//   const navigate = useNavigate();
-
-//   const [language, setLanguage] = useState("english");
-//   const [isRecording, setIsRecording] = useState(false);
-//   const [seconds, setSeconds] = useState(0);
-//   const [audioFile, setAudioFile] = useState(null);
-//   const [loading, setLoading] = useState(false);
-
-//   const [transcript, setTranscript] = useState("");
-//   const [translation, setTranslation] = useState("");
-//   const [resultLanguage, setResultLanguage] = useState("");
-
-//   const [signLoading, setSignLoading] = useState(false);
-
-//   useEffect(() => {
-//     let interval;
-
-//     if (isRecording) {
-//       interval = setInterval(() => {
-//         setSeconds((prev) => prev + 1);
-//       }, 1000);
-//     }
-
-//     return () => clearInterval(interval);
-//   }, [isRecording]);
-
-//   const formatTime = () => {
-//     const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
-//     const secs = String(seconds % 60).padStart(2, "0");
-//     return `${mins}:${secs}`;
-//   };
-
-//   const startRecording = () => {
-//     setIsRecording(true);
-//     setSeconds(0);
-//     // MediaRecorder logic later
-//   };
-
-//   const stopRecording = () => {
-//     setIsRecording(false);
-//   };
-
-//   const handleFile = (e) => {
-//     setAudioFile(e.target.files[0]);
-//   };
-
-//   // The English text handed off to the sign-video pipeline:
-//   // - Hindi selected   -> use the translated English text
-//   // - English selected -> use the transcript directly
-//   const getEnglishText = () => {
-//     if (resultLanguage === "hindi") return translation;
-//     if (resultLanguage === "english") return transcript;
-//     return "";
-//   };
-
-//   const convertSpeech = async () => {
-//     if (!audioFile) {
-//       alert("Please upload an audio or video file.");
-//       return;
-//     }
-
-//     setLoading(true);
-//     setTranscript("");
-//     setTranslation("");
-//     setResultLanguage("");
-
-//     try {
-//       const formData = new FormData();
-//       formData.append("file", audioFile);
-//       formData.append("language", language);
-
-//       const response = await fetch(`${API_BASE}/speech-to-text`, {
-//         method: "POST",
-//         body: formData,
-//       });
-
-//       if (!response.ok) {
-//         throw new Error("Speech-to-text request failed");
-//       }
-
-//       const data = await response.json();
-
-//       setTranscript(data.transcript || "");
-//       setTranslation(data.translation || "");
-//       setResultLanguage(data.language || "");
-
-//       console.log(data);
-//     } catch (error) {
-//       console.error(error);
-//       alert("Failed to convert speech.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const convertToSign = async () => {
-//     const englishText = getEnglishText();
-
-//     if (!englishText) {
-//       alert("Please translate the speech first.");
-//       return;
-//     }
-
-//     setSignLoading(true);
-
-//     try {
-//       const response = await fetch(`${API_BASE}/translate`, {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           text: englishText,
-//           language: "english",
-//         }),
-//       });
-
-//       if (!response.ok) {
-//         throw new Error("Sign conversion request failed");
-//       }
-
-//       const data = await response.json();
-
-//       // Hand the full response off to the Results page via router state
-//       navigate("/results", { state: data });
-//     } catch (error) {
-//       console.error(error);
-//       alert("Failed to convert to sign.");
-//     } finally {
-//       setSignLoading(false);
-//     }
-//   };
-
-//   return (
-//     <section className="speech-to-sign">
-//       <div className="speech-card">
-//         <h2>Speech to Sign</h2>
-
-//         <div className="record-box">
-//           <div className="mic-circle">
-//             <FiMic />
-//           </div>
-
-//           <h3>
-//             {isRecording
-//               ? "Recording..."
-//               : "Click the button to start recording"}
-//           </h3>
-
-//           <p>{formatTime()}</p>
-
-//           <div className="record-buttons">
-//             <button
-//               className="start"
-//               onClick={startRecording}
-//               disabled={isRecording}
-//             >
-//               <FiMic />
-//               Start Recording
-//             </button>
-
-//             <button
-//               className="stop"
-//               onClick={stopRecording}
-//               disabled={!isRecording}
-//             >
-//               <FiStopCircle />
-//               Stop
-//             </button>
-//           </div>
-//         </div>
-
-//         <div className="upload">
-//           <label htmlFor="audioUpload">
-//             <FiUpload />
-//             {audioFile ? audioFile.name : "Upload Audio or Video File"}
-//           </label>
-
-//           <input
-//             id="audioUpload"
-//             type="file"
-//             accept="audio/*,video/*"
-//             onChange={handleFile}
-//           />
-//         </div>
-
-//         <div className="language">
-//           <label>Select Language</label>
-
-//           <div className="select-box">
-//             <FiGlobe />
-
-//             <select
-//               value={language}
-//               onChange={(e) => setLanguage(e.target.value)}
-//             >
-//               <option value="english">English</option>
-//               <option value="hindi">Hindi</option>
-//               <option value="kannada">Kannada</option>
-//             </select>
-//           </div>
-//         </div>
-
-//         <div className="action-buttons">
-//           <button
-//             className="translate"
-//             onClick={convertToSign}
-//             disabled={signLoading || !transcript}
-//           >
-//             {signLoading ? "Converting..." : "Convert to Sign"}
-//           </button>
-
-//           <button className="convert" onClick={convertSpeech} disabled={loading}>
-//             {loading ? "Processing..." : "Translate"}
-//             <FiArrowRight />
-//           </button>
-//         </div>
-
-//         {/* Hindi selected: show both Hindi transcript and English translation */}
-//         {resultLanguage === "hindi" && transcript && (
-//           <div className="result">
-//             <h3>Hindi Transcript</h3>
-//             <p>{transcript}</p>
-//           </div>
-//         )}
-
-//         {resultLanguage === "hindi" && translation && (
-//           <div className="result">
-//             <h3>English Translation</h3>
-//             <p>{translation}</p>
-//           </div>
-//         )}
-
-//         {/* English selected: show only the English text */}
-//         {resultLanguage === "english" && transcript && (
-//           <div className="result">
-//             <h3>English Text</h3>
-//             <p>{transcript}</p>
-//           </div>
-//         )}
-//       </div>
-//     </section>
-//   );
-// }
-
-// export default SpeechToSign;
 
 
 import "./SpeechToSign.scss";
@@ -289,13 +31,12 @@ function SpeechToSign() {
 
   const [signLoading, setSignLoading] = useState(false);
 
-  // Confirmed (final) live text, accumulated sentence by sentence.
   const [liveHindi, setLiveHindi] = useState("");
+  const [liveKannada, setLiveKannada] = useState("");
   const [liveEnglish, setLiveEnglish] = useState("");
 
-  // Interim (partial) text — what's currently being spoken, not final yet.
-  // Only Hindi (Vosk) sends partials; English (Whisper) only sends finals.
   const [partialHindi, setPartialHindi] = useState("");
+  const [partialKannada, setPartialKannada] = useState("");
 
   const socketRef = useRef(null);
   const streamRef = useRef(null);
@@ -303,12 +44,11 @@ function SpeechToSign() {
   const processorRef = useRef(null);
   const sourceRef = useRef(null);
 
-  // Auto-scroll refs for the live transcript boxes.
   const hindiBoxRef = useRef(null);
+  const kannadaBoxRef = useRef(null);
   const englishBoxRef = useRef(null);
 
-  // Languages that have a live websocket transcription model on the backend.
-  const LIVE_LANGUAGES = ["hindi", "english"];
+  const LIVE_LANGUAGES = ["hindi", "english", "kannada"];
 
   useEffect(() => {
     let interval;
@@ -330,27 +70,47 @@ function SpeechToSign() {
     return () => {
       stopLiveTranscription();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-scroll live transcript boxes to the bottom as new text arrives.
   useEffect(() => {
     if (hindiBoxRef.current) {
-      hindiBoxRef.current.scrollTop = hindiBoxRef.current.scrollHeight;
+      hindiBoxRef.current.scrollTop =
+        hindiBoxRef.current.scrollHeight;
     }
   }, [liveHindi, partialHindi]);
 
   useEffect(() => {
+    if (kannadaBoxRef.current) {
+      kannadaBoxRef.current.scrollTop =
+        kannadaBoxRef.current.scrollHeight;
+    }
+  }, [liveKannada, partialKannada]);
+
+  useEffect(() => {
     if (englishBoxRef.current) {
-      englishBoxRef.current.scrollTop = englishBoxRef.current.scrollHeight;
+      englishBoxRef.current.scrollTop =
+        englishBoxRef.current.scrollHeight;
     }
   }, [liveEnglish]);
 
   const formatTime = () => {
-    const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
-    const secs = String(seconds % 60).padStart(2, "0");
+    const mins = String(
+      Math.floor(seconds / 60)
+    ).padStart(2, "0");
+
+    const secs = String(
+      seconds % 60
+    ).padStart(2, "0");
 
     return `${mins}:${secs}`;
+  };
+
+  const clearLiveResults = () => {
+    setLiveHindi("");
+    setLiveKannada("");
+    setLiveEnglish("");
+    setPartialHindi("");
+    setPartialKannada("");
   };
 
   const startRecording = async () => {
@@ -359,9 +119,8 @@ function SpeechToSign() {
       return;
     }
 
-    // No live model for this language yet (e.g. Kannada) — file upload only.
     alert(
-      "Live recording isn't available for this language yet — please upload an audio file instead."
+      "Live recording isn't available for this language yet."
     );
   };
 
@@ -378,14 +137,11 @@ function SpeechToSign() {
     setAudioFile(e.target.files[0]);
   };
 
-  const clearLiveResults = () => {
-    setLiveHindi("");
-    setLiveEnglish("");
-    setPartialHindi("");
-  };
-
   const getEnglishText = () => {
-    if (resultLanguage === "hindi") {
+    if (
+      resultLanguage === "hindi" ||
+      resultLanguage === "kannada"
+    ) {
       return translation;
     }
 
@@ -403,6 +159,7 @@ function SpeechToSign() {
     }
 
     setLoading(true);
+
     setTranscript("");
     setTranslation("");
     setResultLanguage("");
@@ -422,7 +179,9 @@ function SpeechToSign() {
       );
 
       if (!response.ok) {
-        throw new Error("Speech-to-text request failed");
+        throw new Error(
+          "Speech-to-text request failed"
+        );
       }
 
       const data = await response.json();
@@ -430,6 +189,8 @@ function SpeechToSign() {
       setTranscript(data.transcript || "");
       setTranslation(data.translation || "");
       setResultLanguage(data.language || "");
+
+      console.log("Recorded speech result:", data);
 
     } catch (error) {
       console.error(error);
@@ -440,10 +201,18 @@ function SpeechToSign() {
   };
 
   const convertToSign = async () => {
-    const englishText =
-      LIVE_LANGUAGES.includes(language) && liveEnglish
-        ? liveEnglish
-        : getEnglishText();
+    let englishText = "";
+
+    if (language === "hindi") {
+      englishText =
+        liveEnglish || translation || "";
+    } else if (language === "kannada") {
+      englishText =
+        liveEnglish || translation || "";
+    } else if (language === "english") {
+      englishText =
+        liveEnglish || transcript || "";
+    }
 
     if (!englishText) {
       alert("Please translate the speech first.");
@@ -468,7 +237,9 @@ function SpeechToSign() {
       );
 
       if (!response.ok) {
-        throw new Error("Sign conversion request failed");
+        throw new Error(
+          "Sign conversion request failed"
+        );
       }
 
       const data = await response.json();
@@ -486,7 +257,9 @@ function SpeechToSign() {
   };
 
   const floatTo16BitPCM = (input) => {
-    const output = new Int16Array(input.length);
+    const output = new Int16Array(
+      input.length
+    );
 
     for (let i = 0; i < input.length; i++) {
       const sample = Math.max(
@@ -508,31 +281,44 @@ function SpeechToSign() {
     inputSampleRate,
     outputSampleRate
   ) => {
-    if (outputSampleRate === inputSampleRate) {
+    if (
+      outputSampleRate ===
+      inputSampleRate
+    ) {
       return buffer;
     }
 
-    if (outputSampleRate > inputSampleRate) {
+    if (
+      outputSampleRate >
+      inputSampleRate
+    ) {
       throw new Error(
         "Output sample rate must be lower than input sample rate."
       );
     }
 
     const ratio =
-      inputSampleRate / outputSampleRate;
+      inputSampleRate /
+      outputSampleRate;
 
     const newLength =
-      Math.round(buffer.length / ratio);
+      Math.round(
+        buffer.length / ratio
+      );
 
-    const result = new Float32Array(newLength);
+    const result =
+      new Float32Array(newLength);
 
     let offsetResult = 0;
     let offsetBuffer = 0;
 
-    while (offsetResult < result.length) {
+    while (
+      offsetResult < result.length
+    ) {
       const nextOffsetBuffer =
         Math.round(
-          (offsetResult + 1) * ratio
+          (offsetResult + 1) *
+            ratio
         );
 
       let accum = 0;
@@ -549,47 +335,65 @@ function SpeechToSign() {
       }
 
       result[offsetResult] =
-        count > 0 ? accum / count : 0;
+        count > 0
+          ? accum / count
+          : 0;
 
       offsetResult++;
-      offsetBuffer = nextOffsetBuffer;
+      offsetBuffer =
+        nextOffsetBuffer;
     }
 
     return result;
   };
 
-  /**
-   * Generic live-transcription starter, used for BOTH Hindi (Vosk +
-   * translation) and English (faster-whisper) since the audio capture /
-   * downsample / PCM16 pipeline is identical — only the websocket
-   * endpoint and which state fields get filled in differ.
-   */
-  const startLiveTranscription = async (lang) => {
+  const startLiveTranscription = async (
+    lang
+  ) => {
     if (socketRef.current) {
       return;
     }
 
-    const endpoint = lang === "hindi" ? "/live-hindi" : "/live-english";
+    let endpoint = "";
+
+    if (lang === "hindi") {
+      endpoint = "/live-hindi";
+    } else if (lang === "kannada") {
+      endpoint = "/live-kannada";
+    } else {
+      endpoint = "/live-english";
+    }
 
     try {
       clearLiveResults();
+
       setSeconds(0);
 
       const stream =
-        await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
+        await navigator.mediaDevices.getUserMedia(
+          {
+            audio: true,
+          }
+        );
 
-      streamRef.current = stream;
+      streamRef.current =
+        stream;
 
-      const socket = new WebSocket(
-        `${API_BASE.replace("http", "ws")}${endpoint}`
-      );
+      const socket =
+        new WebSocket(
+          `${API_BASE.replace(
+            "http",
+            "ws"
+          )}${endpoint}`
+        );
 
-      socketRef.current = socket;
+      socketRef.current =
+        socket;
 
       socket.onopen = async () => {
-        console.log(`Live ${lang} WebSocket connected`);
+        console.log(
+          `Live ${lang} WebSocket connected`
+        );
 
         setIsRecording(true);
 
@@ -604,7 +408,8 @@ function SpeechToSign() {
             stream
           );
 
-        sourceRef.current = source;
+        sourceRef.current =
+          source;
 
         const processor =
           audioContext.createScriptProcessor(
@@ -616,79 +421,133 @@ function SpeechToSign() {
         processorRef.current =
           processor;
 
-        processor.onaudioprocess = (event) => {
-          if (
-            !socketRef.current ||
-            socketRef.current.readyState !==
-              WebSocket.OPEN
-          ) {
-            return;
-          }
+        processor.onaudioprocess =
+          (event) => {
+            if (
+              !socketRef.current ||
+              socketRef.current
+                .readyState !==
+                WebSocket.OPEN
+            ) {
+              return;
+            }
 
-          const input =
-            event.inputBuffer.getChannelData(0);
+            const input =
+              event.inputBuffer.getChannelData(
+                0
+              );
 
-          const downsampled =
-            downsampleBuffer(
-              input,
-              audioContext.sampleRate,
-              16000
+            const downsampled =
+              downsampleBuffer(
+                input,
+                audioContext.sampleRate,
+                16000
+              );
+
+            const pcm =
+              floatTo16BitPCM(
+                downsampled
+              );
+
+            socket.send(
+              pcm.buffer
             );
+          };
 
-          const pcm =
-            floatTo16BitPCM(
-              downsampled
-            );
-
-          socket.send(pcm.buffer);
-        };
-
-        source.connect(processor);
+        source.connect(
+          processor
+        );
 
         processor.connect(
           audioContext.destination
         );
       };
 
-      socket.onmessage = (event) => {
+      socket.onmessage = (
+        event
+      ) => {
         try {
           const data =
-            JSON.parse(event.data);
+            JSON.parse(
+              event.data
+            );
 
           console.log(
             "Backend:",
             data
           );
 
-          if (data.type === "final") {
-            // A final chunk arrived — commit it to the running transcript
-            // and clear whatever partial text was showing for it.
-            if (data.hindi) {
-              setLiveHindi((prev) =>
-                prev
-                  ? `${prev} ${data.hindi}`
-                  : data.hindi
+          if (
+            data.type ===
+            "final"
+          ) {
+            if (
+              data.hindi
+            ) {
+              setLiveHindi(
+                (prev) =>
+                  prev
+                    ? `${prev} ${data.hindi}`
+                    : data.hindi
               );
 
               setPartialHindi("");
             }
 
-            if (data.english) {
-              setLiveEnglish((prev) =>
-                prev
-                  ? `${prev} ${data.english}`
-                  : data.english
+            if (
+              data.kannada
+            ) {
+              setLiveKannada(
+                (prev) =>
+                  prev
+                    ? `${prev} ${data.kannada}`
+                    : data.kannada
+              );
+
+              setPartialKannada("");
+            }
+
+            if (
+              data.english
+            ) {
+              setLiveEnglish(
+                (prev) =>
+                  prev
+                    ? `${prev} ${data.english}`
+                    : data.english
               );
             }
           }
 
-          if (data.type === "partial") {
-            // Live "typing" preview of what's being said right now,
-            // shown in a lighter style until it gets confirmed as final.
-            setPartialHindi(data.hindi || "");
+          if (
+            data.type ===
+            "partial"
+          ) {
+            if (
+              lang ===
+              "hindi"
+            ) {
+              setPartialHindi(
+                data.hindi ||
+                  ""
+              );
+            }
+
+            if (
+              lang ===
+              "kannada"
+            ) {
+              setPartialKannada(
+                data.kannada ||
+                  ""
+              );
+            }
           }
 
-          if (data.type === "error") {
+          if (
+            data.type ===
+            "error"
+          ) {
             console.error(
               data.error
             );
@@ -702,26 +561,33 @@ function SpeechToSign() {
         }
       };
 
-      socket.onerror = (error) => {
-        console.error(
-          "WebSocket error:",
-          error
-        );
+      socket.onerror =
+        (error) => {
+          console.error(
+            "WebSocket error:",
+            error
+          );
 
-        alert(
-          `Live ${lang} connection failed.`
-        );
+          alert(
+            `Live ${lang} connection failed.`
+          );
 
-        stopLiveTranscription();
-      };
+          stopLiveTranscription();
+        };
 
-      socket.onclose = () => {
-        console.log(`Live ${lang} WebSocket closed`);
+      socket.onclose =
+        () => {
+          console.log(
+            `Live ${lang} WebSocket closed`
+          );
 
-        setIsRecording(false);
+          setIsRecording(
+            false
+          );
 
-        socketRef.current = null;
-      };
+          socketRef.current =
+            null;
+        };
 
     } catch (error) {
       console.error(
@@ -733,54 +599,93 @@ function SpeechToSign() {
         "Please allow microphone access."
       );
 
-      setIsRecording(false);
+      setIsRecording(
+        false
+      );
     }
   };
 
   const stopLiveTranscription = () => {
-    if (processorRef.current) {
+    if (
+      processorRef.current
+    ) {
       processorRef.current.disconnect();
-      processorRef.current = null;
+
+      processorRef.current =
+        null;
     }
 
-    if (sourceRef.current) {
+    if (
+      sourceRef.current
+    ) {
       sourceRef.current.disconnect();
-      sourceRef.current = null;
+
+      sourceRef.current =
+        null;
     }
 
-    if (audioContextRef.current) {
+    if (
+      audioContextRef.current
+    ) {
       audioContextRef.current.close();
-      audioContextRef.current = null;
+
+      audioContextRef.current =
+        null;
     }
 
-    if (streamRef.current) {
+    if (
+      streamRef.current
+    ) {
       streamRef.current
         .getTracks()
-        .forEach((track) => {
-          track.stop();
-        });
+        .forEach(
+          (track) => {
+            track.stop();
+          }
+        );
 
-      streamRef.current = null;
+      streamRef.current =
+        null;
     }
 
-    if (socketRef.current) {
+    if (
+      socketRef.current
+    ) {
       socketRef.current.close();
-      socketRef.current = null;
+
+      socketRef.current =
+        null;
     }
 
-    setIsRecording(false);
+    setIsRecording(
+      false
+    );
+
     setPartialHindi("");
+    setPartialKannada("");
   };
 
   const showLiveResults =
-    LIVE_LANGUAGES.includes(language) &&
-    (liveHindi || liveEnglish || partialHindi || isRecording);
+    LIVE_LANGUAGES.includes(
+      language
+    ) &&
+    (
+      liveHindi ||
+      liveKannada ||
+      liveEnglish ||
+      partialHindi ||
+      partialKannada ||
+      isRecording
+    );
 
   return (
     <section className="speech-to-sign">
+
       <div className="speech-card">
 
-        <h2>Speech to Sign</h2>
+        <h2>
+          Speech to Sign
+        </h2>
 
         <div className="record-box">
 
@@ -794,14 +699,20 @@ function SpeechToSign() {
               : "Click the button to start recording"}
           </h3>
 
-          <p>{formatTime()}</p>
+          <p>
+            {formatTime()}
+          </p>
 
           <div className="record-buttons">
 
             <button
               className="start"
-              onClick={startRecording}
-              disabled={isRecording}
+              onClick={
+                startRecording
+              }
+              disabled={
+                isRecording
+              }
             >
               <FiMic />
               Start Recording
@@ -809,19 +720,26 @@ function SpeechToSign() {
 
             <button
               className="stop"
-              onClick={stopRecording}
-              disabled={!isRecording}
+              onClick={
+                stopRecording
+              }
+              disabled={
+                !isRecording
+              }
             >
               <FiStopCircle />
               Stop
             </button>
 
           </div>
+
         </div>
 
         <div className="upload">
 
-          <label htmlFor="audioUpload">
+          <label
+            htmlFor="audioUpload"
+          >
             <FiUpload />
 
             {audioFile
@@ -833,14 +751,18 @@ function SpeechToSign() {
             id="audioUpload"
             type="file"
             accept="audio/*,video/*"
-            onChange={handleFile}
+            onChange={
+              handleFile
+            }
           />
 
         </div>
 
         <div className="language">
 
-          <label>Select Language</label>
+          <label>
+            Select Language
+          </label>
 
           <div className="select-box">
 
@@ -852,7 +774,9 @@ function SpeechToSign() {
 
                 if (
                   isRecording &&
-                  LIVE_LANGUAGES.includes(language)
+                  LIVE_LANGUAGES.includes(
+                    language
+                  )
                 ) {
                   stopLiveTranscription();
                 }
@@ -862,6 +786,11 @@ function SpeechToSign() {
                 );
 
                 clearLiveResults();
+
+                setTranscript("");
+                setTranslation("");
+                setResultLanguage("");
+
               }}
             >
 
@@ -880,17 +809,22 @@ function SpeechToSign() {
             </select>
 
           </div>
+
         </div>
 
         <div className="action-buttons">
 
           <button
             className="translate"
-            onClick={convertToSign}
+            onClick={
+              convertToSign
+            }
             disabled={
               signLoading ||
               (
-                LIVE_LANGUAGES.includes(language)
+                LIVE_LANGUAGES.includes(
+                  language
+                )
                   ? !liveEnglish &&
                     !translation &&
                     !transcript
@@ -905,8 +839,12 @@ function SpeechToSign() {
 
           <button
             className="convert"
-            onClick={convertSpeech}
-            disabled={loading}
+            onClick={
+              convertSpeech
+            }
+            disabled={
+              loading
+            }
           >
             {loading
               ? "Processing..."
@@ -918,118 +856,297 @@ function SpeechToSign() {
 
         </div>
 
-        {/* -------------------- LIVE RESULTS (Hindi / English) -------------------- */}
         {showLiveResults && (
+
           <div className="live-results">
 
             <div className="live-results-header">
-              <h3>Live Transcript</h3>
 
-              {(liveHindi || liveEnglish) && (
+              <h3>
+                Live Transcript
+              </h3>
+
+              {(
+                liveHindi ||
+                liveKannada ||
+                liveEnglish
+              ) && (
+
                 <button
                   type="button"
                   className="clear-live"
-                  onClick={clearLiveResults}
+                  onClick={
+                    clearLiveResults
+                  }
                   title="Clear live transcript"
                 >
                   <FiTrash2 />
                   Clear
                 </button>
+
               )}
+
             </div>
 
-            {language === "hindi" && (
+            {language ===
+              "hindi" && (
+
               <div className="result">
-                <h3>Hindi (live)</h3>
-                <div className="live-transcript-box" ref={hindiBoxRef}>
+
+                <h3>
+                  Hindi (live)
+                </h3>
+
+                <div
+                  className="live-transcript-box"
+                  ref={
+                    hindiBoxRef
+                  }
+                >
+
                   <p>
+
                     {liveHindi}
+
                     {partialHindi && (
                       <span className="partial-text">
-                        {liveHindi ? " " : ""}
+                        {liveHindi
+                          ? " "
+                          : ""}
                         {partialHindi}
                       </span>
                     )}
-                    {!liveHindi && !partialHindi && (
-                      <span className="placeholder">Listening for speech…</span>
-                    )}
+
+                    {!liveHindi &&
+                      !partialHindi && (
+                        <span className="placeholder">
+                          Listening for speech…
+                        </span>
+                      )}
+
                   </p>
+
                 </div>
+
               </div>
             )}
 
-            {language === "hindi" && liveEnglish && (
-              <div className="result">
-                <h3>English (live translation)</h3>
-                <div className="live-transcript-box" ref={englishBoxRef}>
-                  <p>{liveEnglish}</p>
-                </div>
-              </div>
-            )}
+            {language ===
+              "hindi" &&
+              liveEnglish && (
 
-            {language === "english" && (
               <div className="result">
-                <h3>English (live)</h3>
-                <div className="live-transcript-box" ref={englishBoxRef}>
+
+                <h3>
+                  English (live translation)
+                </h3>
+
+                <div
+                  className="live-transcript-box"
+                  ref={
+                    englishBoxRef
+                  }
+                >
+
                   <p>
-                    {liveEnglish || (
-                      <span className="placeholder">Listening for speech…</span>
-                    )}
+                    {liveEnglish}
                   </p>
+
                 </div>
+
+              </div>
+            )}
+
+            {language ===
+              "kannada" && (
+
+              <div className="result">
+
+                <h3>
+                  Kannada (live)
+                </h3>
+
+                <div
+                  className="live-transcript-box"
+                  ref={
+                    kannadaBoxRef
+                  }
+                >
+
+                  <p>
+
+                    {liveKannada}
+
+                    {partialKannada && (
+                      <span className="partial-text">
+                        {liveKannada
+                          ? " "
+                          : ""}
+                        {partialKannada}
+                      </span>
+                    )}
+
+                    {!liveKannada &&
+                      !partialKannada && (
+                        <span className="placeholder">
+                          Listening for speech…
+                        </span>
+                      )}
+
+                  </p>
+
+                </div>
+
+              </div>
+            )}
+
+            {language ===
+              "kannada" &&
+              liveEnglish && (
+
+              <div className="result">
+
+                <h3>
+                  English (live translation)
+                </h3>
+
+                <div
+                  className="live-transcript-box"
+                  ref={
+                    englishBoxRef
+                  }
+                >
+
+                  <p>
+                    {liveEnglish}
+                  </p>
+
+                </div>
+
+              </div>
+            )}
+
+            {language ===
+              "english" && (
+
+              <div className="result">
+
+                <h3>
+                  English (live)
+                </h3>
+
+                <div
+                  className="live-transcript-box"
+                  ref={
+                    englishBoxRef
+                  }
+                >
+
+                  <p>
+
+                    {liveEnglish || (
+                      <span className="placeholder">
+                        Listening for speech…
+                      </span>
+                    )}
+
+                  </p>
+
+                </div>
+
               </div>
             )}
 
           </div>
         )}
 
-        {/* -------------------- FILE UPLOAD RESULTS -------------------- */}
-        {resultLanguage === "hindi" &&
+        {resultLanguage ===
+          "hindi" &&
           transcript && (
-            <div className="result">
 
-              <h3>
-                Hindi Transcript
-              </h3>
+          <div className="result">
 
-              <p>
-                {transcript}
-              </p>
+            <h3>
+              Hindi Transcript
+            </h3>
 
-            </div>
-          )}
+            <p>
+              {transcript}
+            </p>
 
-        {resultLanguage === "hindi" &&
+          </div>
+        )}
+
+        {resultLanguage ===
+          "hindi" &&
           translation && (
-            <div className="result">
 
-              <h3>
-                English Translation
-              </h3>
+          <div className="result">
 
-              <p>
-                {translation}
-              </p>
+            <h3>
+              English Translation
+            </h3>
 
-            </div>
-          )}
+            <p>
+              {translation}
+            </p>
 
-        {resultLanguage === "english" &&
+          </div>
+        )}
+
+        {resultLanguage ===
+          "kannada" &&
           transcript && (
-            <div className="result">
 
-              <h3>
-                English Text
-              </h3>
+          <div className="result">
 
-              <p>
-                {transcript}
-              </p>
+            <h3>
+              Kannada Transcript
+            </h3>
 
-            </div>
-          )}
+            <p>
+              {transcript}
+            </p>
+
+          </div>
+        )}
+
+        {resultLanguage ===
+          "kannada" &&
+          translation && (
+
+          <div className="result">
+
+            <h3>
+              English Translation
+            </h3>
+
+            <p>
+              {translation}
+            </p>
+
+          </div>
+        )}
+
+        {resultLanguage ===
+          "english" &&
+          transcript && (
+
+          <div className="result">
+
+            <h3>
+              English Text
+            </h3>
+
+            <p>
+              {transcript}
+            </p>
+
+          </div>
+        )}
 
       </div>
+
     </section>
   );
 }

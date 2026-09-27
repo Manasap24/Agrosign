@@ -28,8 +28,15 @@ function Results() {
   const process = data.translations[0]?.process_name || "Unknown";
 
   // All detected processes received from backend
-  const processList = data.process_sequence || [];
+  const processList = data.translations
+    .flatMap((item) => {
+      if (Array.isArray(item.process_name)) {
+        return item.process_name;
+      }
 
+      return item.process_name ? [item.process_name] : [];
+    })
+    .filter(Boolean);
   // Video URLs received from backend
   const videoList = data.complete_video_sequence || [];
 

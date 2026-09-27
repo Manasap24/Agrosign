@@ -394,7 +394,7 @@ def select_process(clause):
 
     best = ranked[0]
 
-    if best["retrieval_score"] < 0.30:
+    if best["retrieval_score"] < 0.40:
         return None
 
     return best

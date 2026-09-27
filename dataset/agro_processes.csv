@@ -68,7 +68,7 @@ process_id,process_name,category,description,context_examples,sign_sequence
 
 28,Poultry Farming,Livestock & Allied Farming,"Raising chickens under proper housing, feeding, and healthcare conditions for the production of eggs and meat.","The farmer reared chickens for egg production.;Poultry birds were provided balanced feed.;Proper poultry management reduced disease outbreaks.;Healthy chickens produced better yields.","chicken"
 
-29,Goat Rearing,Livestock & Allied Farming,"Managing and breeding goats for the production of milk, meat, and other livestock products through proper nutrition and healthcare.","The farmer raised goats for milk and meat.;Goats were provided proper shelter and feed.;Regular healthcare kept the goats healthy.;Goat rearing provided additional farm income.","goat"
+
 
 30,Cattle Management,Livestock & Allied Farming,"Managing cattle by providing proper nutrition, shelter, breeding, and veterinary care to improve livestock productivity and overall farm sustainability.","The cattle were provided clean drinking water.;The farmer ensured regular veterinary check-ups.;Healthy cattle improved farm productivity.;Proper cattle management increased livestock health.","cattle"
 

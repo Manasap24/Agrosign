@@ -1,0 +1,18 @@
+process_id,process_name,parent_id,action_lemmas,object_concepts,method_concepts,aliases,sign_concepts
+SOIL_PREPARATION,Soil Preparation,LAND_PREPARATION,prepare|plough|plow|till|level,soil|field|land,,,soil|plough
+MULCHING,Mulching,SOIL_MANAGEMENT,mulch|apply|spread,soil|field|crop|plant,mulch|straw|plastic mulch,mulching|mulch application,mulching|soil
+SEED_TREATMENT,Seed Treatment,CROP_ESTABLISHMENT,treat|coat|protect,seed|seeds,pesticide|fungicide|biological treatment,seed treatment,seed|pesticide
+SEED_SOWING,Seed Sowing,CROP_ESTABLISHMENT,sow|plant|seed,seed|seeds|field|soil,,,seed|planting
+IRRIGATION,Irrigation,CROP_WATER_MANAGEMENT,irrigate|water|apply|supply,crop|crops|field|soil|plant|plants,drip irrigation|sprinkler irrigation|flood irrigation,irrigation|watering|water application,irrigation|water
+DRIP_IRRIGATION,Drip Irrigation,IRRIGATION,irrigate|water|apply water|supply water,crop|crops|field|soil,drip irrigation|drip system,drip irrigation|micro irrigation,drip_irrigation|water
+SPRINKLER_IRRIGATION,Sprinkler Irrigation,IRRIGATION,irrigate|water|spray|sprinkle,crop|crops|field,sprinkler|sprinkler system,sprinkler irrigation, sprinkler|irrigation|water
+FERTILIZATION,Fertilization,CROP_NUTRIENT_MANAGEMENT,fertilize|fertilise|manure|apply,crop|crops|soil|plant|plants,fertilizer|fertiliser|manure|compost,fertilization|fertilizer application,fertilizer|compost
+ORGANIC_FERTILIZATION,Organic Fertilizer Application,FERTILIZATION,fertilize|fertilise|manure|apply,crop|crops|soil|plant|plants,organic fertilizer|organic manure|compost,organic fertilizer application,organic|fertilizer|soil
+PEST_CONTROL,Pest Control,CROP_PROTECTION,control|manage|spray|treat|protect,crop|crops|plant|plants,pesticide|insecticide|biological control,pest control|pest management,pesticide|insect
+HARVESTING,Harvesting,POST_HARVEST_MANAGEMENT,harvest|reap|collect,crop|crops|grain|produce|fruit|fruits|vegetable|vegetables,manual|mechanical,harvesting|crop harvesting,harvesting|crops
+LAND_CLEARING,Land Clearing,LAND_PREPARATION,clear|remove|weed|clean,field|land|weed|weeds|vegetation|debris|stones,,land clearing|field clearing|clear weeds,LAND_CLEARING|weed
+SOIL_AMENDMENT,Soil Amendment,SOIL_MANAGEMENT,add|apply|incorporate|mix|spread,soil|field|land|bed|beds,compost|manure|organic matter|soil amendment,soil amendment|compost application|apply compost|add compost|incorporate compost,SOIL_AMENDMENT|soil|compost
+BED_PREPARATION,Bed Preparation,LAND_PREPARATION,prepare|raise|shape|form|build,bed|beds|soil|field,raised bed|planting bed,bed preparation|raised bed preparation|form raised beds,BED_PREPARATION|soil|planting|crops
+TRANSPLANTING,Transplanting,CROP_ESTABLISHMENT,transplant|move|plant,seedling|seedlings|plant|field|bed,seedling transplant,transplant seedlings|transplanting,TRANSPLANTING|planting|crops
+SOIL_MOISTURE_CONSERVATION,Soil Moisture Conservation,SOIL_MANAGEMENT,maintain|conserve|retain|preserve|manage,moisture|soil|water,soil moisture,maintain soil moisture|moisture conservation|retain soil moisture,SOIL_MOISTURE_CONSERVATION|soil|water|mulching
+FIELD_SELECTION,Field Selection,CROP_PLANNING,select|choose|assess|evaluate,field|land|site|farm,well-drained field|suitable field,field selection|select a field|choose a field|land selection,FIELD_SELECTION|farm|soil|weather

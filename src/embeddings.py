@@ -49,7 +49,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 @lru_cache(maxsize=1)
 def load_model():
-    return SentenceTransformer("all-MiniLM-L6-v2")
+    # Keep inference offline-capable after the first model download. If weights
+    # are absent, fail early with the normal model-loading error rather than
+    # making an unexpected network request on every application start.
+    return SentenceTransformer(
+        "sentence-transformers/all-MiniLM-L6-v2",
+        local_files_only=True,
+    )
 
 
 def load_processes():
@@ -58,6 +64,10 @@ def load_processes():
 
     df = pd.read_csv(processes_path)
 
+    required_columns = {"process_name", "description", "context_examples", "category", "sign_sequence"}
+    missing_columns = required_columns.difference(df.columns)
+    if missing_columns:
+        raise ValueError(f"Process CSV is missing required columns: {', '.join(sorted(missing_columns))}")
     if df.empty:
         raise ValueError("No agricultural processes found in CSV.")
 

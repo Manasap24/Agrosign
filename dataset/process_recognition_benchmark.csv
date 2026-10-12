@@ -1,0 +1,17 @@
+case_id,category,text,expected_process_ids,expected_status,expected_ideal_concepts
+01,exact terminology,The farmer waters the crops.,IRRIGATION,asserted,IRRIGATION
+02,synonym,The farmer irrigates the field.,IRRIGATION,asserted,IRRIGATION
+03,ambiguous word,The farmer drinks water.,,unknown,
+04,multi-word concept,The farmer uses drip irrigation to water the crops.,IRRIGATION,asserted,IRRIGATION|DRIP_IRRIGATION
+05,multiple ordered processes,"First prepare the soil, then sow the seeds and finally irrigate the field.",SOIL_PREPARATION|SEED_SOWING|IRRIGATION,asserted,SOIL_PREPARATION|SEED_SOWING|IRRIGATION
+06,negation,The farmer does not irrigate the crops.,IRRIGATION,negated,NEGATION|IRRIGATION
+07,prohibition,Do not water the crop.,IRRIGATION,prohibited,NEGATION|IRRIGATION
+08,temporal ordering,"After sowing the seeds, the farmer irrigates the field.",SEED_SOWING|IRRIGATION,asserted,SEED_SOWING|IRRIGATION
+09,agricultural action,The farmer applies fertilizer to the crop.,FERTILIZATION,asserted,FERTILIZATION
+10,method modifier,The farmer uses a sprinkler system to water the crops.,IRRIGATION,asserted,IRRIGATION|SPRINKLER_IRRIGATION
+11,unknown concept,The farmer repairs a bicycle.,,unknown,
+12,statement not event,Water is essential for crop growth.,,unknown,
+13,cessation,The farmer stopped irrigating the crops.,IRRIGATION,ceased,CESSATION|IRRIGATION
+14,hypothetical,The farmer may irrigate the crops.,IRRIGATION,hypothetical,HYPOTHETICAL|IRRIGATION
+15,specific fertilizer concept,The farmer applies organic fertilizer to the crop.,FERTILIZATION,asserted,FERTILIZATION|ORGANIC_FERTILIZATION
+16,existing catalogue fallback process,The farmer mulches the field.,MULCHING,asserted,MULCHING

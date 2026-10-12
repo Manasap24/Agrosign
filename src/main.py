@@ -2,9 +2,9 @@ import json
 import shutil
 import tempfile
 import traceback
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-import numpy as np
 from fastapi import (
     FastAPI,
     UploadFile,
@@ -18,28 +18,19 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-
+from config import VIDEO_DIR
+from process_detector import initialize_process_detector
 from manual_translator import translate_manual
-from speech_to_text.vosk_hindi import transcribe_hindi
-from speech_to_text.faster_whisper_english import transcribe_english
-from speech_to_text.translate_hindi_to_english import translate_hindi_to_english
-from speech_to_text.vosk_hindi_live import create_recognizer, SAMPLE_RATE
-from speech_to_text.english_live import (
-    transcribe_audio,
-    SAMPLE_RATE as WHISPER_SAMPLE_RATE,
-)
-
-from speech_to_text.kannada.kannada_recorded import transcribe_kannada
-from speech_to_text.kannada.kannada_live import (
-    transcribe_kannada_audio,
-    SAMPLE_RATE as KANNADA_SAMPLE_RATE,
-)
-from speech_to_text.kannada.kannada_to_english import (
-    translate_kannada_to_english,
-)
 
 
-app = FastAPI(title="AgroSign API")
+@asynccontextmanager
+async def lifespan(_app):
+    # Load the parser/model and precompute static process embeddings once.
+    initialize_process_detector()
+    yield
+
+
+app = FastAPI(title="AgroSign API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -49,7 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/videos", StaticFiles(directory="../sign_videos"), name="videos")
+app.mount("/videos", StaticFiles(directory=str(VIDEO_DIR)), name="videos")
 
 CHUNK_SECONDS = 3
 
@@ -73,6 +64,8 @@ def translate(request: TextRequest, http_request: Request):
     lang = request.language.strip().lower()
 
     if lang == "hindi":
+        from speech_to_text.translate_hindi_to_english import translate_hindi_to_english
+
         english_text = translate_hindi_to_english(request.text)
 
         if not english_text:
@@ -82,6 +75,8 @@ def translate(request: TextRequest, http_request: Request):
             )
 
     elif lang == "kannada":
+        from speech_to_text.kannada.kannada_to_english import translate_kannada_to_english
+
         english_text = translate_kannada_to_english(request.text)
 
         if not english_text:
@@ -105,15 +100,33 @@ def translate(request: TextRequest, http_request: Request):
             f"{base_url}/videos/{filename}"
         )
 
-    process_list = [
-        item["process_name"]
-        for item in result["translations"]
-        if item.get("process_name")
-    ]
+    process_list = result.get("process_sequence", [])
+
+    def video_url(path):
+        filename = Path(path).name
+        return f"{base_url}/videos/{filename}"
 
     result["complete_video_sequence"] = video_urls
     result["process_sequence"] = process_list
     result["translated_input"] = english_text
+    # Keep existing response keys and expose event/sign coverage additively.
+    for sentence in result.get("translations", []):
+        sentence["video_sequence"] = [video_url(path) for path in sentence.get("video_sequence", [])]
+        for process in sentence.get("processes", []):
+            process["video_sequence"] = [video_url(path) for path in process.get("video_sequence", [])]
+            process["renderable_sign_sequence"] = [
+                {**{key: value for key, value in clip.items() if key != "path"}, "video_url": video_url(clip["path"])}
+                for clip in process.get("renderable_sign_sequence", [])
+            ]
+        sentence["renderable_sign_sequence"] = [clip for process in sentence.get("processes", []) for clip in process.get("renderable_sign_sequence", [])]
+    result["renderable_sign_sequence"] = [
+        {**{k: v for k, v in clip.items() if k != "path"}, "video_url": video_url(clip["path"])}
+        for clip in result.get("renderable_sign_sequence", [])
+    ]
+    for fallback in result.get("sign_fallbacks", []):
+        paths = fallback.pop("video_paths", [])
+        if paths:
+            fallback["video_urls"] = [video_url(path) for path in paths]
 
     return result
 
@@ -144,9 +157,13 @@ def translate_text_endpoint(request: TranslateTextRequest):
         )
 
     if lang == "hindi":
+        from speech_to_text.translate_hindi_to_english import translate_hindi_to_english
+
         translated = translate_hindi_to_english(request.text)
 
     else:
+        from speech_to_text.kannada.kannada_to_english import translate_kannada_to_english
+
         translated = translate_kannada_to_english(request.text)
 
     if not translated:
@@ -189,6 +206,8 @@ async def speech_to_text(
 
         # Hindi
         if language.lower() == "hindi":
+            from speech_to_text.vosk_hindi import transcribe_hindi
+            from speech_to_text.translate_hindi_to_english import translate_hindi_to_english
 
             hindi_text = transcribe_hindi(
                 temp_path
@@ -206,6 +225,7 @@ async def speech_to_text(
 
         # English
         elif language.lower() == "english":
+            from speech_to_text.faster_whisper_english import transcribe_english
 
             english_text = transcribe_english(
                 temp_path
@@ -219,6 +239,8 @@ async def speech_to_text(
 
         # Kannada
         elif language.lower() == "kannada":
+            from speech_to_text.kannada.kannada_recorded import transcribe_kannada
+            from speech_to_text.kannada.kannada_to_english import translate_kannada_to_english
 
             kannada_text = transcribe_kannada(
                 temp_path
@@ -270,6 +292,8 @@ async def speech_to_text(
 # ---------------------------------------------------------------------------
 @app.websocket("/live-hindi")
 async def live_hindi(websocket: WebSocket):
+    from speech_to_text.vosk_hindi_live import create_recognizer
+    from speech_to_text.translate_hindi_to_english import translate_hindi_to_english
 
     await websocket.accept()
 
@@ -382,6 +406,9 @@ async def live_hindi(websocket: WebSocket):
 # ---------------------------------------------------------------------------
 @app.websocket("/live-kannada")
 async def live_kannada(websocket: WebSocket):
+    import numpy as np
+    from speech_to_text.kannada.kannada_live import transcribe_kannada_audio, SAMPLE_RATE as KANNADA_SAMPLE_RATE
+    from speech_to_text.kannada.kannada_to_english import translate_kannada_to_english
 
     await websocket.accept()
 
@@ -499,6 +526,8 @@ async def live_kannada(websocket: WebSocket):
 # ---------------------------------------------------------------------------
 @app.websocket("/live-english")
 async def live_english(websocket: WebSocket):
+    import numpy as np
+    from speech_to_text.english_live import transcribe_audio, SAMPLE_RATE as WHISPER_SAMPLE_RATE
 
     await websocket.accept()
 

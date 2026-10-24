@@ -1,18 +1,197 @@
 process_id,process_name,parent_id,action_lemmas,object_concepts,method_concepts,aliases,sign_concepts
-SOIL_PREPARATION,Soil Preparation,LAND_PREPARATION,prepare|plough|plow|till|level,soil|field|land,,,soil|plough
-MULCHING,Mulching,SOIL_MANAGEMENT,mulch|apply|spread,soil|field|crop|plant,mulch|straw|plastic mulch,mulching|mulch application,mulching|soil
+SOIL_PREPARATION,Soil Preparation,LAND_PREPARATION,prepare|plough|plow|till|level,soil|field|land,,land preparation|field preparation,soil|plough
+PLOUGHING,Ploughing,SOIL_PREPARATION,plough|plow|till,soil|field|land,,ploughing,PLOUGHING|TRACTOR|PLOUGH
+LEVELLING,Levelling,SOIL_PREPARATION,level|smooth,field|soil|surface,,levelling,LEVELLING|SOIL
+SEEDBED_PREPARATION,Seedbed Preparation,SOIL_PREPARATION,prepare|break|loosen,soil|seedbed|field,,seedbed preparation,SEEDBED_PREPARATION|SOIL|SEED
+LAND_CLEARING,Land Clearing,LAND_PREPARATION,clear,field|land|vegetation|debris|stones,,land clearing|field clearing|clear weeds,LAND_CLEARING|weed
+SEED_SELECTION,Seed Selection,CROP_ESTABLISHMENT,select|choose,seed,,seed selection,SEED_SELECTION|SEED
 SEED_TREATMENT,Seed Treatment,CROP_ESTABLISHMENT,treat|coat|protect,seed|seeds,pesticide|fungicide|biological treatment,seed treatment,seed|pesticide
-SEED_SOWING,Seed Sowing,CROP_ESTABLISHMENT,sow|plant|seed,seed|seeds|field|soil,,,seed|planting
-IRRIGATION,Irrigation,CROP_WATER_MANAGEMENT,irrigate|water|apply|supply,crop|crops|field|soil|plant|plants,drip irrigation|sprinkler irrigation|flood irrigation,irrigation|watering|water application,irrigation|water
-DRIP_IRRIGATION,Drip Irrigation,IRRIGATION,irrigate|water|apply water|supply water,crop|crops|field|soil,drip irrigation|drip system,drip irrigation|micro irrigation,drip_irrigation|water
-SPRINKLER_IRRIGATION,Sprinkler Irrigation,IRRIGATION,irrigate|water|spray|sprinkle,crop|crops|field,sprinkler|sprinkler system,sprinkler irrigation, sprinkler|irrigation|water
-FERTILIZATION,Fertilization,CROP_NUTRIENT_MANAGEMENT,fertilize|fertilise|manure|apply,crop|crops|soil|plant|plants,fertilizer|fertiliser|manure|compost,fertilization|fertilizer application,fertilizer|compost
-ORGANIC_FERTILIZATION,Organic Fertilizer Application,FERTILIZATION,fertilize|fertilise|manure|apply,crop|crops|soil|plant|plants,organic fertilizer|organic manure|compost,organic fertilizer application,organic|fertilizer|soil
-PEST_CONTROL,Pest Control,CROP_PROTECTION,control|manage|spray|treat|protect,crop|crops|plant|plants,pesticide|insecticide|biological control,pest control|pest management,pesticide|insect
-HARVESTING,Harvesting,POST_HARVEST_MANAGEMENT,harvest|reap|collect,crop|crops|grain|produce|fruit|fruits|vegetable|vegetables,manual|mechanical,harvesting|crop harvesting,harvesting|crops
-LAND_CLEARING,Land Clearing,LAND_PREPARATION,clear|remove|weed|clean,field|land|weed|weeds|vegetation|debris|stones,,land clearing|field clearing|clear weeds,LAND_CLEARING|weed
-SOIL_AMENDMENT,Soil Amendment,SOIL_MANAGEMENT,add|apply|incorporate|mix|spread,soil|field|land|bed|beds,compost|manure|organic matter|soil amendment,soil amendment|compost application|apply compost|add compost|incorporate compost,SOIL_AMENDMENT|soil|compost
-BED_PREPARATION,Bed Preparation,LAND_PREPARATION,prepare|raise|shape|form|build,bed|beds|soil|field,raised bed|planting bed,bed preparation|raised bed preparation|form raised beds,BED_PREPARATION|soil|planting|crops
+SEED_SOWING,Seed Sowing,CROP_ESTABLISHMENT,sow|plant|seed,seed|seeds|field|soil,,seed sowing|sow seeds|plant seeds,seed|planting
 TRANSPLANTING,Transplanting,CROP_ESTABLISHMENT,transplant|move|plant,seedling|seedlings|plant|field|bed,seedling transplant,transplant seedlings|transplanting,TRANSPLANTING|planting|crops
+NURSERY_MANAGEMENT,Nursery Management,CROP_ESTABLISHMENT,grow|water|care|manage,nursery,,nursery management,NURSERY_MANAGEMENT|PLANTING|WATER
+IRRIGATION,Irrigation,CROP_WATER_MANAGEMENT,irrigate|water|apply|supply,crop|crops|field|soil|plant|plants,drip irrigation|sprinkler irrigation|flood irrigation,irrigation|watering|water application,irrigation|water
+FERTILIZATION,Fertilization,CROP_NUTRIENT_MANAGEMENT,fertilize|fertilise|manure|apply,crop|crops|soil|plant|plants,fertilizer|fertiliser|manure|compost,fertilization|fertilizer application,fertilizer|compost
+MANURING,Manuring,SOIL_MANAGEMENT,apply|manure|spread,manuring,,manuring,MANURING|COMPOST|SOIL
+WEEDING,Weeding,CROP_PROTECTION,weed|remove|control,weed|weeds|field|crop,,weeding,WEEDING|WEED|CROPS
+MULCHING,Mulching,SOIL_MANAGEMENT,mulch|apply|spread,soil|field|crop|plant,mulch|straw|plastic mulch,mulching|mulch application,mulching|soil
+PEST_CONTROL,Pest Control,CROP_PROTECTION,control|manage|spray|treat|protect,crop|crops|plant|plants,pesticide|insecticide|biological control,pest control|pest management,pesticide|insect
+DISEASE_MANAGEMENT,Disease Management,CROP_PROTECTION,manage|maintain|control,disease,,disease management,DISEASE_MANAGEMENT|CROPS|PESTICIDE
+CROP_MONITORING,Crop Monitoring,CROP_MANAGEMENT,monitor|observe|check,crop|plant|field,,crop monitoring,CROP_MONITORING|CROPS|WEATHER
+PRUNING,Pruning,CROP_MANAGEMENT,prune|cut,pruning,,pruning,PRUNING|PLANTING
+CROP_ROTATION,Crop Rotation,CROP_PLANNING,rotate|alternate,crop|rotation,,crop rotation,CROP_ROTATION|CROPS
+HARVESTING,Harvesting,POST_HARVEST_MANAGEMENT,harvest|reap|collect,crop|crops|grain|produce|fruit|fruits|vegetable|vegetables,manual|mechanical,harvesting|crop harvesting,harvesting|crops
+THRESHING,Threshing,POST_HARVEST_MANAGEMENT,thresh|separate,grain|seed|crop,,threshing,THRESHING|HARVESTER
+DRYING,Drying,POST_HARVEST_MANAGEMENT,dry|reduce,sunlight|crops,,drying,DRYING|SUNLIGHT|CROPS
+STORAGE,Storage,POST_HARVEST_MANAGEMENT,store|keep,crops,,storage,STORAGE|CROPS
+TRANSPORTATION,Transportation,HARVEST_POST_HARVEST,transport|move,tractor|crops,,transportation,TRANSPORTATION|TRACTOR|CROPS
+PACKAGING,Packaging,POST_HARVEST_MANAGEMENT,pack|package,crops,,packaging,PACKAGING|CROPS
+DAIRY_FARMING,Dairy Farming,LIVESTOCK_MANAGEMENT,grow|farm,dairy,,dairy farming,DAIRY_FARMING|COW|DAIRY
+POULTRY_FARMING,Poultry Farming,LIVESTOCK_MANAGEMENT,grow|farm,poultry,,poultry farming,POULTRY_FARMING|CHICKEN
+GOAT_REARING,Goat Rearing,LIVESTOCK_MANAGEMENT,rear|raise,goat,,goat rearing,GOAT_REARING|GOAT
+CATTLE_MANAGEMENT,Cattle Management,LIVESTOCK_MANAGEMENT,manage|maintain|control,cattle,,cattle management,CATTLE_MANAGEMENT|CATTLE
+SOIL_TESTING,Soil Testing,SOIL_MANAGEMENT,test|measure,soil,,soil testing,SOIL_TESTING|SOIL|FERTILIZER
+SOIL_AMENDMENT,Soil Amendment,SOIL_MANAGEMENT,add|apply|incorporate|mix|spread,soil|field|land|bed|beds,compost|manure|organic matter|soil amendment,soil amendment|compost application|apply compost|add compost|incorporate compost,SOIL_AMENDMENT|soil|compost
+COMPOSTING,Composting,SOIL_MANAGEMENT,compost|decompose,composting,,composting,COMPOSTING|COMPOST|SOIL
+GREEN_MANURING,Green Manuring,SOIL_MANAGEMENT,grow|incorporate,green|manuring,,green manuring,GREEN_MANURING|CROPS|SOIL
+RAINWATER_HARVESTING,Rainwater Harvesting,CROP_WATER_MANAGEMENT,collect|store,rainwater,,rainwater harvesting,RAINWATER_HARVESTING|RAINFALL|WATER|POND
+DRIP_IRRIGATION,Drip Irrigation,IRRIGATION,irrigate|water|apply water|supply water,crop|crops|field|soil,drip irrigation|drip system,drip irrigation|micro irrigation,drip_irrigation|water
+SPRINKLER_IRRIGATION,Sprinkler Irrigation,IRRIGATION,irrigate|water|spray|sprinkle,crop|crops|field,sprinkler|sprinkler system,sprinkler irrigation,sprinkler|irrigation|water
+DRAINAGE_MANAGEMENT,Drainage Management,WATER_MANAGEMENT,manage|maintain|control,drainage,,drainage management,DRAINAGE_MANAGEMENT|WATER|SOIL|FLOOD
+FERTIGATION,Fertigation,CROP_MANAGEMENT,irrigate|apply|supply,fertigation,,fertigation,FERTIGATION|FERTILIZER|IRRIGATION|WATER
+NUTRIENT_MANAGEMENT,Nutrient Management,SOIL_MANAGEMENT,manage|maintain|control,nutrient,,nutrient management,NUTRIENT_MANAGEMENT|FERTILIZER|COMPOST|SOIL
+INTERCROPPING,Intercropping,FARM_PLANNING,intercrop|grow|plant,intercropping,,intercropping,INTERCROPPING|CROPS|PLANTING
+CROP_DIVERSIFICATION,Crop Diversification,CROP_PLANNING,diversify|grow|plant,crop|diversification,,crop diversification,CROP_DIVERSIFICATION|CROPS|CROP_ROTATION
+INTEGRATED_PEST_MANAGEMENT,Integrated Pest Management,PEST_CONTROL,manage|monitor|control,pest,,integrated pest management,INTEGRATED_PEST_MANAGEMENT|INSECT|PESTICIDE|CROPS
+BIOLOGICAL_PEST_CONTROL,Biological Pest Control,PEST_CONTROL,control|manage,pest,biological,biological pest control,BIOLOGICAL_PEST_CONTROL|INSECT|CROPS
+TRAP_CROPPING,Trap Cropping,PEST_CONTROL,plant|attract|trap,trap,,trap cropping,TRAP_CROPPING|CROPS|INSECT
+FIELD_SANITATION,Field Sanitation,CROP_PROTECTION,remove|clean|clear,crop residue|infected plant|weed|weeds|field,,field sanitation,FIELD_SANITATION|WEED|CROPS
+PEST_SCOUTING,Pest Scouting,CROP_PROTECTION,inspect|scout|check,pest,,pest scouting,PEST_SCOUTING|CROPS|INSECT
+DISEASE_SCOUTING,Disease Scouting,DISEASE_MANAGEMENT,inspect|scout|check,disease,,disease scouting,DISEASE_SCOUTING|CROPS|PESTICIDE
+GAP_FILLING,Gap Filling,CROP_ESTABLISHMENT,fill|replace,gap|filling,,gap filling,GAP_FILLING|PLANTING|CROPS
+THINNING,Thinning,CROP_ESTABLISHMENT,thin|remove,planting|crops,,thinning,THINNING|PLANTING|CROPS
+STAKING,Staking,CROP_MANAGEMENT,stake|support,staking,,staking,STAKING|PLANTING|CROPS
+POLLINATION_MANAGEMENT,Pollination Management,CROP_MANAGEMENT,support|pollinate,crops|planting,,pollination management,POLLINATION_MANAGEMENT|CROPS|PLANTING
+PROTECTED_CULTIVATION,Protected Cultivation,CROP_PRODUCTION,grow|cultivate|protect,greenhouse|crops|weather,protected,protected cultivation,PROTECTED_CULTIVATION|GREENHOUSE|CROPS|WEATHER
+MICROCLIMATE_MANAGEMENT,Microclimate Management,CLIMATE_MANAGEMENT,manage|adjust|regulate,microclimate,,microclimate management,MICROCLIMATE_MANAGEMENT|TEMPERATURE|SUNLIGHT|WATER
+RESIDUE_MANAGEMENT,Residue Management,SOIL_MANAGEMENT,remove|manage|incorporate,crop residue|residue|stubble|field,,residue management,RESIDUE_MANAGEMENT|CROPS|COMPOST|SOIL
+PRODUCE_CLEANING,Produce Cleaning,POST_HARVEST_MANAGEMENT,clean|wash|remove,produce,,produce cleaning,PRODUCE_CLEANING|HARVESTING|WATER
+PRODUCE_SORTING,Produce Sorting,POST_HARVEST_MANAGEMENT,sort|separate,produce,,produce sorting,PRODUCE_SORTING|HARVESTING|CROPS
+PRODUCE_GRADING,Produce Grading,POST_HARVEST_MANAGEMENT,grade|classify,produce,,produce grading,PRODUCE_GRADING|CROPS|HARVESTING
+COLD_STORAGE,Cold Storage,STORAGE,store|keep|cool,cold,cold,cold storage,COLD_STORAGE|CROPS|STORAGE
+VALUE_ADDITION,Value Addition,POST_HARVEST_MANAGEMENT,process|prepare|package,crops,,value addition,VALUE_ADDITION|CROPS|PACKAGING
+NURSERY_RAISING,Nursery Raising,CROP_ESTABLISHMENT,raise|grow|care,seedling|nursery|plant,,nursery raising,NURSERY_RAISING|SEED|PLANTING|CROPS
+SEEDLING_PREPARATION,Seedling Preparation,CROP_ESTABLISHMENT,prepare|make,seedling,,seedling preparation,SEEDLING_PREPARATION|SEED|PLANTING|CROPS
+DIRECT_SEEDING,Direct Seeding,SEED_SOWING,sow|plant|place,seed|seeds|field,direct|directly,direct seeding|sow seeds directly|plant seeds directly,DIRECT_SEEDING|SEED|PLANTING|SOIL
+LAND_PREPARATION,Land Preparation,SOIL_PREPARATION,prepare|make,land,,land preparation,LAND_PREPARATION|SOIL|PLOUGH|PLANTING
+FIELD_LEVELING,Field Leveling,SOIL_PREPARATION,level|smooth,field|soil|surface,,field leveling,FIELD_LEVELING|SOIL|IRRIGATION|WATER
+BED_PREPARATION,Bed Preparation,LAND_PREPARATION,prepare|raise|shape|form|build,bed|beds|soil|field,raised bed|raised beds|planting bed,bed preparation|raised bed preparation|prepare raised beds|form raised beds,BED_PREPARATION|soil|planting|crops
+ROW_SPACING_MANAGEMENT,Row Spacing Management,CROP_ESTABLISHMENT,space|maintain|measure,row|spacing,,row spacing management,ROW_SPACING_MANAGEMENT|PLANTING|CROPS
+SEED_PLACEMENT,Seed Placement,CROP_ESTABLISHMENT,place|position|cover|bury|press,seed|seeds|soil|row,seed depth|seed spacing,seed placement|place seeds|cover seeds|cover the seeds,SEED_PLACEMENT|seed|soil
+GERMINATION_MONITORING,Germination Monitoring,CROP_ESTABLISHMENT,monitor|observe|check,germination,,germination monitoring,GERMINATION_MONITORING|SEED|CROPS|SOIL
+PLANT_GROWTH_MONITORING,Plant Growth Monitoring,CROP_MONITORING,monitor|observe|check,plant|growth,,plant growth monitoring,PLANT_GROWTH_MONITORING|CROPS|SOIL|WATER
+MANUAL_WEEDING,Manual Weeding,WEEDING,weed|remove,weeding,manual,manual weeding,MANUAL_WEEDING|WEED|CROPS
+MECHANICAL_WEEDING,Mechanical Weeding,WEEDING,weed|remove|cultivate,weeding,mechanical,mechanical weeding,MECHANICAL_WEEDING|WEED|MACHINE|CROPS
+MULCH_APPLICATION,Mulch Application,MULCHING,apply|spread|mulch,mulch,,mulch application,MULCH_APPLICATION|MULCHING|SOIL|WATER
+FERTILIZER_APPLICATION,Fertilizer Application,FERTILIZATION,apply|fertilize|fertilise,crop|soil|plant,fertilizer|fertiliser,fertilizer application,FERTILIZER_APPLICATION|FERTILIZER|CROPS
+TOP_DRESSING,Top Dressing,FERTILIZATION,apply|fertilize|fertilise,top|dressing,,top dressing,TOP_DRESSING|FERTILIZER|CROPS
+BASAL_FERTILIZER_APPLICATION,Basal Fertilizer Application,FERTILIZATION,apply|fertilize|fertilise,basal|fertilizer,,basal fertilizer application,BASAL_FERTILIZER_APPLICATION|FERTILIZER|SOIL|PLANTING
+FOLIAR_FEEDING,Foliar Feeding,FERTILIZATION,feed|spray|apply,foliar|feeding,,foliar feeding,FOLIAR_FEEDING|FERTILIZER|CROPS|WATER
+PESTICIDE_APPLICATION,Pesticide Application,PEST_CONTROL,apply|spray,crop|plant,pesticide,pesticide application,PESTICIDE_APPLICATION|PESTICIDE|INSECT|CROPS
+PEST_CONTROL_SPRAYING,Pest Control Spraying,PEST_CONTROL,spray|apply|control,pest|spraying,,pest control spraying,PEST_CONTROL_SPRAYING|PESTICIDE|INSECT|CROPS
+PEST_TRAPPING,Pest Trapping,PEST_CONTROL,trap|monitor,pest,,pest trapping,PEST_TRAPPING|INSECT|CROPS
+DISEASE_PREVENTION,Disease Prevention,DISEASE_MANAGEMENT,prevent|protect|manage,disease,,disease prevention,DISEASE_PREVENTION|CROPS|PESTICIDE
+CROP_PROTECTION,Crop Protection,CROP_MANAGEMENT,protect|prevent|manage,crop,,crop protection,CROP_PROTECTION|CROPS|INSECT|WEED|WEATHER
+IRRIGATION_SCHEDULING,Irrigation Scheduling,IRRIGATION,schedule|plan|irrigate,irrigation|scheduling,,irrigation scheduling,IRRIGATION_SCHEDULING|IRRIGATION|WATER|WEATHER
+WATER_CONSERVATION,Water Conservation,CROP_WATER_MANAGEMENT,conserve|save|reduce,irrigation|soil,,water conservation,WATER_CONSERVATION|WATER|IRRIGATION|SOIL
+SHADE_MANAGEMENT,Shade Management,CROP_MANAGEMENT,manage|shade|adjust,shade,,shade management,SHADE_MANAGEMENT|SUNLIGHT|CROPS|GREENHOUSE
+HARVEST_TIMING,Harvest Timing,HARVESTING,time|schedule|harvest,timing,,harvest timing,HARVEST_TIMING|HARVESTING|CROPS|WEATHER
+HARVEST_MATURITY_ASSESSMENT,Harvest Maturity Assessment,HARVESTING,assess|check|harvest,maturity,,harvest maturity assessment,HARVEST_MATURITY_ASSESSMENT|HARVESTING|CROPS
+MANUAL_HARVESTING,Manual Harvesting,HARVESTING,harvest|collect|pick,crops,manual,manual harvesting,MANUAL_HARVESTING|HARVESTING|CROPS
+MECHANICAL_HARVESTING,Mechanical Harvesting,HARVESTING,harvest|collect,harvester|machine,mechanical,mechanical harvesting,MECHANICAL_HARVESTING|HARVESTING|HARVESTER|MACHINE
+HARVEST_HANDLING,Harvest Handling,HARVESTING,handle|move|protect,crops,,harvest handling,HARVEST_HANDLING|HARVESTING|CROPS
+HARVEST_COLLECTION,Harvest Collection,HARVESTING,collect|gather,collection,,harvest collection,HARVEST_COLLECTION|HARVESTING|CROPS
+THRESHING_OPERATION,Threshing Operation,POST_HARVEST_MANAGEMENT,thresh|separate,threshing,,threshing operation,THRESHING_OPERATION|THRESHING|HARVESTING|CROPS
+GRAIN_CLEANING,Grain Cleaning,POST_HARVEST_MANAGEMENT,clean|remove|sieve,grain,,grain cleaning,GRAIN_CLEANING|THRESHING|CROPS
+GRAIN_DRYING,Grain Drying,DRYING,dry|reduce,grain,,grain drying,GRAIN_DRYING|HARVESTING|SUNLIGHT|CROPS
+SUN_DRYING,Sun Drying,DRYING,dry|spread,sun,sun,sun drying,SUN_DRYING|SUNLIGHT|HARVESTING|CROPS
+MOISTURE_MANAGEMENT,Moisture Management,POST_HARVEST_MANAGEMENT,manage|measure|control,moisture,,moisture management,MOISTURE_MANAGEMENT|WATER|CROPS|STORAGE
+GRAIN_STORAGE,Grain Storage,STORAGE,store|keep|protect,grain,,grain storage,GRAIN_STORAGE|CROPS|INSECT
+SEED_STORAGE,Seed Storage,STORAGE,store|keep|preserve,seed,,seed storage,SEED_STORAGE|SEED|CROPS|INSECT
+GRAIN_PEST_PROTECTION,Grain Pest Protection,CROP_PROTECTION,protect|prevent|control,grain|pest,,grain pest protection,GRAIN_PEST_PROTECTION|CROPS|INSECT|PESTICIDE
+POST_HARVEST_LOSS_REDUCTION,Post-Harvest Loss Reduction,POST_HARVEST_MANAGEMENT,reduce|prevent|minimize,post-harvest|loss,,post-harvest loss reduction,POST_HARVEST_LOSS_REDUCTION|HARVESTING|CROPS|WATER
+PRODUCE_PACKAGING,Produce Packaging,POST_HARVEST_MANAGEMENT,package|pack,produce,,produce packaging,PRODUCE_PACKAGING|CROPS|HARVESTING
+PRODUCE_TRANSPORTATION,Produce Transportation,POST_HARVEST_MANAGEMENT,transport|move|carry,produce,,produce transportation,PRODUCE_TRANSPORTATION|HARVESTING|CROPS|FARM
+MARKET_PREPARATION,Market Preparation,POST_HARVEST_MANAGEMENT,prepare|clean|grade,market,,market preparation,MARKET_PREPARATION|CROPS|HARVESTING
+PRODUCE_SELLING,Produce Selling,POST_HARVEST_MANAGEMENT,sell|market,produce,,produce selling,PRODUCE_SELLING|CROPS|HARVESTING
+CROP_PRICE_ASSESSMENT,Crop Price Assessment,CROP_MONITORING,assess|compare|estimate,crop|price,,crop price assessment,CROP_PRICE_ASSESSMENT|CROPS|HARVESTING
+MARKET_GRADING_PREPARATION,Market Grading Preparation,POST_HARVEST_MANAGEMENT,grade|classify|prepare,market,,market grading preparation,MARKET_GRADING_PREPARATION|CROPS|HARVESTING
+CROP_ROTATION_PLANNING,Crop Rotation Planning,CROP_PLANNING,plan|rotate,crop|rotation,,crop rotation planning,CROP_ROTATION_PLANNING|CROP_ROTATION|CROPS|SOIL
+COVER_CROPPING,Cover Cropping,CROP_PLANNING,grow|sow|cover,cover,,cover cropping,COVER_CROPPING|CROPS|SOIL
 SOIL_MOISTURE_CONSERVATION,Soil Moisture Conservation,SOIL_MANAGEMENT,maintain|conserve|retain|preserve|manage,moisture|soil|water,soil moisture,maintain soil moisture|moisture conservation|retain soil moisture,SOIL_MOISTURE_CONSERVATION|soil|water|mulching
+SOIL_EROSION_CONTROL,Soil Erosion Control,SOIL_MANAGEMENT,control|reduce|prevent,soil|erosion,,soil erosion control,SOIL_EROSION_CONTROL|SOIL|WATER|RAINFALL
+WIND_EROSION_CONTROL,Wind Erosion Control,SOIL_MANAGEMENT,control|reduce|prevent,wind|erosion,,wind erosion control,WIND_EROSION_CONTROL|SOIL|CROPS|WEATHER
+ORGANIC_MATTER_MANAGEMENT,Organic Matter Management,SOIL_MANAGEMENT,manage|add|incorporate,matter,organic,organic matter management,ORGANIC_MATTER_MANAGEMENT|SOIL|COMPOST|CROPS
+SOIL_FERTILITY_MANAGEMENT,Soil Fertility Management,SOIL_MANAGEMENT,manage|improve|maintain,soil|fertility,,soil fertility management,SOIL_FERTILITY_MANAGEMENT|SOIL|FERTILIZER|COMPOST
+SOIL_PH_MANAGEMENT,Soil pH Management,SOIL_MANAGEMENT,manage|adjust|test,soil|ph,,soil ph management,SOIL_PH_MANAGEMENT|SOIL|FERTILIZER
+ORGANIC_FERTILIZATION,Organic Fertilizer Application,FERTILIZATION,fertilize|fertilise|manure|apply,crop|crops|soil|plant|plants,organic fertilizer|organic manure|compost,organic fertilizer application,organic|fertilizer|soil
+BIOFERTILIZER_APPLICATION,Biofertilizer Application,FERTILIZATION,apply|fertilize|fertilise,biofertilizer,,biofertilizer application,BIOFERTILIZER_APPLICATION|FERTILIZER|CROPS|SOIL
+WATER_TABLE_MANAGEMENT,Water Table Management,CROP_WATER_MANAGEMENT,manage|monitor|regulate,table,,water table management,WATER_TABLE_MANAGEMENT|WATER|SOIL|IRRIGATION
+GROUNDWATER_USE,Groundwater Use,CROP_WATER_MANAGEMENT,use|draw|pump,groundwater,,groundwater use,GROUNDWATER_USE|WATER|IRRIGATION|DROUGHT
+WATER_PUMPING,Water Pumping,CROP_WATER_MANAGEMENT,pump|move|supply,irrigation|pond,,water pumping,WATER_PUMPING|WATER|IRRIGATION|POND
+CANAL_IRRIGATION,Canal Irrigation,IRRIGATION,irrigate|supply|distribute,canal|irrigation,canal,canal irrigation,CANAL_IRRIGATION|IRRIGATION|WATER|CROPS
+FIELD_WATER_DISTRIBUTION,Field Water Distribution,IRRIGATION,distribute|supply|irrigate,field|distribution,,field water distribution,FIELD_WATER_DISTRIBUTION|IRRIGATION|WATER|CROPS
+WATERLOGGING_MANAGEMENT,Waterlogging Management,CROP_WATER_MANAGEMENT,manage|drain|remove,waterlogging,,waterlogging management,WATERLOGGING_MANAGEMENT|WATER|FLOOD|SOIL
+DROUGHT_MANAGEMENT,Drought Management,CROP_WATER_MANAGEMENT,manage|conserve|protect,drought,,drought management,DROUGHT_MANAGEMENT|DROUGHT|WATER|CROPS
+FLOOD_DAMAGE_MANAGEMENT,Flood Damage Management,CROP_WATER_MANAGEMENT,manage|drain|protect,flood|damage,,flood damage management,FLOOD_DAMAGE_MANAGEMENT|FLOOD|WATER|CROPS
+WEATHER_MONITORING,Weather Monitoring,CROP_MONITORING,monitor|observe|check,weather,,weather monitoring,WEATHER_MONITORING|WEATHER|RAINFALL|TEMPERATURE
+RAINFALL_MONITORING,Rainfall Monitoring,CROP_MONITORING,monitor|measure|record,rainfall,,rainfall monitoring,RAINFALL_MONITORING|RAINFALL|WATER|WEATHER
+TEMPERATURE_MONITORING,Temperature Monitoring,CROP_MONITORING,monitor|measure|record,temperature,,temperature monitoring,TEMPERATURE_MONITORING|TEMPERATURE|WEATHER|CROPS
+DROUGHT_EARLY_WARNING,Drought Early Warning,CROP_WATER_MANAGEMENT,monitor|detect|warn,drought|warning,,drought early warning,DROUGHT_EARLY_WARNING|DROUGHT|RAINFALL|WATER
+FROST_PROTECTION,Frost Protection,CLIMATE_MANAGEMENT,protect|prevent|cover,frost,,frost protection,FROST_PROTECTION|TEMPERATURE|WEATHER|CROPS
+HEAT_STRESS_MANAGEMENT,Heat Stress Management,CLIMATE_MANAGEMENT,manage|reduce|protect,heat|stress,,heat stress management,HEAT_STRESS_MANAGEMENT|TEMPERATURE|WATER|CROPS
+WIND_PROTECTION,Wind Protection,CLIMATE_MANAGEMENT,protect|prevent|support,wind,,wind protection,WIND_PROTECTION|WEATHER|CROPS|PLANTING
+STORM_DAMAGE_MANAGEMENT,Storm Damage Management,CROP_MONITORING,assess|manage|repair,storm|damage,,storm damage management,STORM_DAMAGE_MANAGEMENT|WEATHER|RAINFALL|CROPS
+PLANT_SUPPORT_MANAGEMENT,Plant Support Management,CROP_MANAGEMENT,support|stake|tie,plant,,plant support management,PLANT_SUPPORT_MANAGEMENT|PLANTING|CROPS
+CANOPY_MANAGEMENT,Canopy Management,CROP_MANAGEMENT,manage|prune|train,canopy,,canopy management,CANOPY_MANAGEMENT|CROPS|SUNLIGHT
+TRAINING_PLANTS,Training Plants,CROP_MANAGEMENT,train|guide|tie,plants,,training plants,TRAINING_PLANTS|PLANTING|CROPS
+FLOWERING_MONITORING,Flowering Monitoring,CROP_MONITORING,monitor|observe|check,flowering,,flowering monitoring,FLOWERING_MONITORING|CROPS|PLANTING
+FRUIT_DEVELOPMENT_MONITORING,Fruit Development Monitoring,CROP_MONITORING,monitor|observe|check,fruit|development,,fruit development monitoring,FRUIT_DEVELOPMENT_MONITORING|FRUIT|CROPS|HARVESTING
+SEED_PRODUCTION,Seed Production,CROP_ESTABLISHMENT,produce|grow|manage,seed,,seed production,SEED_PRODUCTION|SEED|CROPS|HARVESTING
+SEED_HARVESTING,Seed Harvesting,HARVESTING,harvest|collect,seed,,seed harvesting,SEED_HARVESTING|SEED|HARVESTING|CROPS
+SEED_CLEANING,Seed Cleaning,CROP_ESTABLISHMENT,clean|remove|sieve,seed,,seed cleaning,SEED_CLEANING|SEED|HARVESTING|CROPS
+SEED_SORTING,Seed Sorting,CROP_ESTABLISHMENT,sort|separate|grade,seed,,seed sorting,SEED_SORTING|SEED|CROPS|PLANTING
+SEED_DRYING,Seed Drying,DRYING,dry|reduce,seed,,seed drying,SEED_DRYING|SEED|SUNLIGHT|WATER
+SEED_GERMINATION_TESTING,Seed Germination Testing,CROP_ESTABLISHMENT,test|measure|check,seed|germination,,seed germination testing,SEED_GERMINATION_TESTING|SEED|PLANTING|CROPS
+PLANT_POPULATION_MANAGEMENT,Plant Population Management,CROP_MANAGEMENT,manage|thin|fill,plant|population,,plant population management,PLANT_POPULATION_MANAGEMENT|PLANTING|CROPS
+CROP_STAND_ASSESSMENT,Crop Stand Assessment,CROP_MONITORING,assess|inspect|measure,crop|stand,,crop stand assessment,CROP_STAND_ASSESSMENT|CROPS|PLANTING|SOIL
+CROP_YIELD_ESTIMATION,Crop Yield Estimation,CROP_MONITORING,estimate|calculate|assess,crop|yield|estimation,,crop yield estimation,CROP_YIELD_ESTIMATION|CROPS|HARVESTING
+CROP_YIELD_MONITORING,Crop Yield Monitoring,CROP_MONITORING,monitor|measure|record,crop|yield,,crop yield monitoring,CROP_YIELD_MONITORING|CROPS|HARVESTING
+CROP_HEALTH_ASSESSMENT,Crop Health Assessment,CROP_MONITORING,assess|inspect|check,crop|health,,crop health assessment,CROP_HEALTH_ASSESSMENT|CROPS|WEATHER|WATER
+PLANT_STRESS_DETECTION,Plant Stress Detection,CROP_MONITORING,detect|identify|assess,plant|stress,,plant stress detection,PLANT_STRESS_DETECTION|CROPS|WATER|TEMPERATURE
+NUTRIENT_DEFICIENCY_DETECTION,Nutrient Deficiency Detection,SOIL_MANAGEMENT,detect|identify|assess,nutrient|deficiency,,nutrient deficiency detection,NUTRIENT_DEFICIENCY_DETECTION|CROPS|FERTILIZER|SOIL
+WATER_STRESS_DETECTION,Water Stress Detection,CROP_WATER_MANAGEMENT,detect|identify|assess,stress,,water stress detection,WATER_STRESS_DETECTION|CROPS|WATER|DROUGHT
+PEST_DAMAGE_ASSESSMENT,Pest Damage Assessment,CROP_PROTECTION,assess|inspect|measure,pest|damage,,pest damage assessment,PEST_DAMAGE_ASSESSMENT|INSECT|CROPS|PESTICIDE
+DISEASE_DAMAGE_ASSESSMENT,Disease Damage Assessment,CROP_PROTECTION,assess|inspect|measure,disease|damage,,disease damage assessment,DISEASE_DAMAGE_ASSESSMENT|CROPS|PESTICIDE
+WEED_INFESTATION_ASSESSMENT,Weed Infestation Assessment,WEEDING,assess|inspect|measure,weed|infestation,,weed infestation assessment,WEED_INFESTATION_ASSESSMENT|WEED|CROPS
+CROP_DAMAGE_ASSESSMENT,Crop Damage Assessment,CROP_MONITORING,assess|inspect|measure,crop|damage,,crop damage assessment,CROP_DAMAGE_ASSESSMENT|CROPS|WEATHER|INSECT
+FIELD_INSPECTION,Field Inspection,CROP_MONITORING,inspect|check|observe,field|crop|plant,,field inspection,FIELD_INSPECTION|CROPS|SOIL|INSECT
+SOIL_MOISTURE_MONITORING,Soil Moisture Monitoring,CROP_MONITORING,monitor|measure|check,soil moisture|moisture|soil,,soil moisture monitoring,SOIL_MOISTURE_MONITORING|SOIL|WATER|IRRIGATION
+SOIL_TEMPERATURE_MONITORING,Soil Temperature Monitoring,SOIL_MANAGEMENT,monitor|measure|check,soil|temperature,,soil temperature monitoring,SOIL_TEMPERATURE_MONITORING|SOIL|TEMPERATURE|SEED
+SOIL_SAMPLING,Soil Sampling,SOIL_MANAGEMENT,sample|collect|test,soil|sampling,,soil sampling,SOIL_SAMPLING|SOIL|FARM
+FIELD_MAPPING,Field Mapping,PRECISION_AGRICULTURE,map|survey|record,field|mapping,,field mapping,FIELD_MAPPING|FARM|CROPS|SOIL
+PRECISION_IRRIGATION,Precision Irrigation,IRRIGATION,irrigate|supply|distribute,irrigation,precision,precision irrigation,PRECISION_IRRIGATION|IRRIGATION|WATER|CROPS
+PRECISION_FERTILIZATION,Precision Fertilization,FERTILIZATION,fertilize|fertilise|apply,fertilization,precision,precision fertilization,PRECISION_FERTILIZATION|FERTILIZER|SOIL|CROPS
+RESOURCE_ALLOCATION,Resource Allocation,FARM_PLANNING,allocate|plan|distribute,resource|allocation,,resource allocation,RESOURCE_ALLOCATION|FARM|WATER|FERTILIZER
+FARM_ACTIVITY_PLANNING,Farm Activity Planning,FARM_PLANNING,plan|schedule|organize,farm|activity,,farm activity planning,FARM_ACTIVITY_PLANNING|FARM|PLANTING|IRRIGATION
+SEASONAL_CROP_PLANNING,Seasonal Crop Planning,FARM_PLANNING,plan|select|schedule,crop,,seasonal crop planning,SEASONAL_CROP_PLANNING|CROPS|WEATHER|RAINFALL
+MONSOON_CROP_PLANNING,Monsoon Crop Planning,FARM_PLANNING,plan|schedule|select,crop,monsoon,monsoon crop planning,MONSOON_CROP_PLANNING|RAINFALL|CROPS|PLANTING
+DRY_SEASON_FARMING,Dry Season Farming,FARM_PLANNING,grow|cultivate|irrigate,dry|season,,dry season farming,DRY_SEASON_FARMING|DROUGHT|IRRIGATION|CROPS
+RAINFED_FARMING,Rainfed Farming,FARM_PLANNING,grow|cultivate|plant,rainfall|crops,rainfed,rainfed farming,RAINFED_FARMING|RAINFALL|CROPS|WATER
+LOW_WATER_FARMING,Low Water Farming,CROP_WATER_MANAGEMENT,grow|cultivate|conserve,drought|crops,,low water farming,LOW_WATER_FARMING|DROUGHT|WATER|CROPS
+CLIMATE_SMART_FARMING,Climate-Smart Farming,CLIMATE_MANAGEMENT,farm|adapt|manage,climate-smart,,climate-smart farming,CLIMATE_SMART_FARMING|WEATHER|CROPS|WATER
+WEATHER_BASED_FARM_PLANNING,Weather-Based Farm Planning,CLIMATE_MANAGEMENT,plan|schedule|adjust,weather-based|farm,,weather-based farm planning,WEATHER_BASED_FARM_PLANNING|WEATHER|RAINFALL|IRRIGATION
+CROP_SELECTION,Crop Selection,CROP_PLANNING,select|choose,crop,,crop selection,CROP_SELECTION|CROPS|SOIL|WEATHER
+VARIETY_SELECTION,Variety Selection,CROP_PLANNING,select|choose,variety,,variety selection,VARIETY_SELECTION|SEED|CROPS|WEATHER
+EARLY_MATURING_CROP_SELECTION,Early Maturing Crop Selection,CROP_PLANNING,select|choose,crop,,early maturing crop selection,EARLY_MATURING_CROP_SELECTION|SEED|CROPS|HARVESTING
+DROUGHT_TOLERANT_CROP_SELECTION,Drought-Tolerant Crop Selection,CROP_WATER_MANAGEMENT,select|choose,drought-tolerant|crop,drought-tolerant,drought-tolerant crop selection,DROUGHT_TOLERANT_CROP_SELECTION|DROUGHT|SEED|CROPS
+SALINITY_MANAGEMENT,Salinity Management,SOIL_MANAGEMENT,manage|reduce|control,salinity,,salinity management,SALINITY_MANAGEMENT|SOIL|WATER|CROPS
+SALINITY_MONITORING,Salinity Monitoring,SOIL_MANAGEMENT,monitor|measure|check,salinity,,salinity monitoring,SALINITY_MONITORING|SOIL|CROPS|WATER
+WATER_QUALITY_MANAGEMENT,Water Quality Management,CROP_WATER_MANAGEMENT,manage|test|monitor,quality,,water quality management,WATER_QUALITY_MANAGEMENT|WATER|IRRIGATION|CROPS
+WATER_SOURCE_ASSESSMENT,Water Source Assessment,CROP_WATER_MANAGEMENT,assess|inspect|measure,source,,water source assessment,WATER_SOURCE_ASSESSMENT|WATER|POND|FARM
+IRRIGATION_WATER_REQUIREMENT_ASSESSMENT,Irrigation Water Requirement Assessment,IRRIGATION,assess|calculate|estimate,irrigation|requirement,,irrigation water requirement assessment,IRRIGATION_WATER_REQUIREMENT_ASSESSMENT|WATER|IRRIGATION|CROPS
+ROOT_ZONE_WATER_MANAGEMENT,Root Zone Water Management,CROP_WATER_MANAGEMENT,manage|irrigate|monitor,root|zone,,root zone water management,ROOT_ZONE_WATER_MANAGEMENT|WATER|IRRIGATION|SOIL
+ORGANIC_PEST_MANAGEMENT,Organic Pest Management,PEST_CONTROL,manage|control|prevent,pest,organic,organic pest management,ORGANIC_PEST_MANAGEMENT|ORGANIC|INSECT|CROPS
+WEED_PREVENTION,Weed Prevention,WEEDING,prevent|control|manage,weed,,weed prevention,WEED_PREVENTION|WEED|CROPS|MULCHING
+WEED_MONITORING,Weed Monitoring,WEEDING,monitor|observe|check,weed,,weed monitoring,WEED_MONITORING|WEED|CROPS
+PESTICIDE_SELECTION,Pesticide Selection,PEST_CONTROL,select|choose,pesticide,,pesticide selection,PESTICIDE_SELECTION|PESTICIDE|INSECT|CROPS
+PESTICIDE_SAFETY_MANAGEMENT,Pesticide Safety Management,PEST_CONTROL,handle|store|apply,pesticide|safety,,pesticide safety management,PESTICIDE_SAFETY_MANAGEMENT|PESTICIDE|FARMER|CROPS
+PESTICIDE_APPLICATION_TIMING,Pesticide Application Timing,PEST_CONTROL,schedule|time|apply,pesticide|timing,,pesticide application timing,PESTICIDE_APPLICATION_TIMING|PESTICIDE|INSECT|WEATHER
+PESTICIDE_APPLICATION_MONITORING,Pesticide Application Monitoring,PEST_CONTROL,monitor|inspect|check,pesticide,,pesticide application monitoring,PESTICIDE_APPLICATION_MONITORING|PESTICIDE|INSECT|CROPS
+BIOLOGICAL_DISEASE_MANAGEMENT,Biological Disease Management,DISEASE_MANAGEMENT,manage|control|protect,disease,biological,biological disease management,BIOLOGICAL_DISEASE_MANAGEMENT|CROPS|PESTICIDE
+INFECTED_PLANT_REMOVAL,Infected Plant Removal,CROP_PROTECTION,remove|uproot|discard,infected|plant|removal,,infected plant removal,INFECTED_PLANT_REMOVAL|CROPS|INSECT|WEED
+POST_HARVEST_CLEANING,Post-Harvest Cleaning,POST_HARVEST_MANAGEMENT,clean|wash|remove,post-harvest,,post-harvest cleaning,POST_HARVEST_CLEANING|HARVESTING|WATER|CROPS
+POST_HARVEST_SORTING,Post-Harvest Sorting,POST_HARVEST_MANAGEMENT,sort|separate|grade,post-harvest,,post-harvest sorting,POST_HARVEST_SORTING|HARVESTING|CROPS
+POST_HARVEST_DRYING,Post-Harvest Drying,DRYING,dry|reduce,post-harvest,,post-harvest drying,POST_HARVEST_DRYING|HARVESTING|SUNLIGHT|CROPS
+POST_HARVEST_STORAGE,Post-Harvest Storage,STORAGE,store|keep|preserve,post-harvest,,post-harvest storage,POST_HARVEST_STORAGE|CROPS|HARVESTING|INSECT
+INTEGRATED_CROP_MANAGEMENT,Integrated Crop Management,CROP_MANAGEMENT,manage|coordinate|combine,crop,,integrated crop management,INTEGRATED_CROP_MANAGEMENT|CROPS|SOIL|WATER|FERTILIZER|INSECT
 FIELD_SELECTION,Field Selection,CROP_PLANNING,select|choose|assess|evaluate,field|land|site|farm,well-drained field|suitable field,field selection|select a field|choose a field|land selection,FIELD_SELECTION|farm|soil|weather

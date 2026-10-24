@@ -17,6 +17,7 @@ from sentence_transformers import util
 from embeddings import BASE_DIR, load_model, load_processes
 from event_model import AgriculturalEvent
 from preprocessing import nlp as _shared_nlp
+from bart_verifier import classify_processes
 
 LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +33,11 @@ SCORING_CONFIG = {
     "medium": 0.55,
     "accept": 0.48,
     "ambiguity_margin": 0.06,
+    # BART is invoked only for low first-stage scores or close leading process
+    # candidates. These are calibration settings, not empirically proven cutoffs.
+    "bart_top_k": 3,
+    "bart_trigger_score": 0.55,
+    "bart_min_entailment": 0.50,
     # The curated catalogue is intentionally small; retain enough ranked
     # candidates for specific agricultural actions to beat broad neighbours.
     "top_k": 12,
@@ -63,6 +69,33 @@ ACTION_WORDS = {
     "sprinkle", "sprinkled", "control", "controls", "controlled", "manage",
     "managed", "harvest", "harvests", "harvested", "reap", "reaped", "collect",
     "collected", "spread",
+    # Verb vocabulary used by the full process catalogue (assessment,
+    # monitoring, planning, and post-harvest activities).
+    "assess", "assesses", "assessed", "evaluate", "evaluates", "evaluated",
+    "analyze", "analyse", "analyzes", "analyses", "analyzed", "analysed",
+    "plan", "plans", "planned", "schedule", "schedules", "scheduled",
+    "grow", "grows", "grew", "grown", "rear", "rears", "reared",
+    "cultivate", "cultivates", "cultivated", "decompose", "decomposes", "decomposed",
+    "support", "supports", "supported", "distribute", "distributes", "distributed",
+    "classify", "classifies", "classified", "reduce", "reduces", "reduced",
+    "minimize", "minimizes", "minimized", "estimate", "estimates", "estimated",
+    "calculate", "calculates", "calculated", "sample", "samples", "sampled",
+    "map", "maps", "mapped", "allocate", "allocates", "allocated",
+    "organize", "organizes", "organized", "organise", "organises", "organised",
+    "adapt", "adapts", "adapted", "regulate", "regulates", "regulated",
+    "monitor", "monitors", "monitored", "observe", "observes", "observed",
+    "scout", "scouts", "scouted", "detect", "detects", "detected",
+    "identify", "identifies", "identified", "analyze", "analyse", "test", "tests", "tested",
+    "cool", "cools", "cooled", "package", "packages", "packaged",
+    "sell", "sells", "sold", "process", "processes", "processed",
+    "thresh", "threshes", "threshed", "sieve", "sieves", "sieved",
+    "tie", "ties", "tied", "guide", "guides", "guided", "pump", "pumps", "pumped",
+    "conserve", "conserves", "conserved", "prevent", "prevents", "prevented",
+    "handle", "handles", "handled", "repair", "repairs", "repaired",
+    "diversify", "diversifies", "diversified", "intercrop", "intercrops", "intercropped",
+    "rotate", "rotates", "rotated", "pollinate", "pollinates", "pollinated",
+    "shade", "shades", "shaded", "warn", "warns", "warned", "record", "records", "recorded",
+    "carry", "carries", "carried", "feed", "feeds", "fed", "care", "cares", "cared",
 }
 IRREGULAR = {
     "waters": "water", "watered": "water", "watering": "water",
@@ -190,6 +223,18 @@ def _phrase_present(text: str, phrase: str) -> bool:
     return bool(re.search(r"(?<!\w)" + re.escape(normalized_phrase.strip()) + r"(?!\w)", normalized_text))
 
 
+def _phrase_is_negated(text: str, phrase: str) -> bool:
+    """Do not treat a negated alternative as positive process evidence."""
+    normalized = re.sub(r"[^a-z0-9 ]+", " ", text.lower())
+    target = re.sub(r"[^a-z0-9 ]+", " ", phrase.lower()).strip()
+    if not target:
+        return False
+    for match in re.finditer(r"(?<!\w)" + re.escape(target) + r"(?!\w)", normalized):
+        if re.search(r"(?:\bnot|\bnever|\bno|\bneither)\s*$", normalized[:match.start()].rstrip()):
+            return True
+    return False
+
+
 def _clause_spans(text: str) -> list[tuple[str, str]]:
     """Split coordinated events while preserving fronted temporal clauses."""
     clean = text.strip()
@@ -199,9 +244,16 @@ def _clause_spans(text: str) -> list[tuple[str, str]]:
     m = re.match(r"(?i)\s*(after|before)\s+(.+?),\s*(.+)$", clean)
     if m:
         relation, subclause, main = m.groups()
+        main_clauses = _clause_spans(main)
         if relation.lower() == "after":
-            return [(subclause, "after_reference"), (main, "after")]
-        return [(main, "before"), (subclause, "before_reference")]
+            if main_clauses:
+                first_clause, first_relation = main_clauses[0]
+                main_clauses[0] = (first_clause, first_relation or "after")
+            return [(subclause, "after_reference"), *main_clauses]
+        if main_clauses:
+            first_clause, first_relation = main_clauses[0]
+            main_clauses[0] = (first_clause, first_relation or "before")
+        return [*main_clauses, (subclause, "before_reference")]
 
     actions = sorted(ACTION_WORDS, key=len, reverse=True)
     action_lookahead = r"(?=" + "|".join(re.escape(a) for a in actions) + r"\b)"
@@ -272,9 +324,36 @@ def _event_features(clause: str) -> dict:
     verb_tokens = [t for t in tokens if t.pos_ == "VERB"]
     domain_verbs = [t for t in verb_tokens if normalize_word(t.lemma_.lower()) in ACTION_WORDS]
     # Prefer a specific agricultural action over a generic "use" construction.
-    action = next((t for t in domain_verbs if normalize_word(t.lemma_.lower()) != "use"), None)
+    first_lexical = next((t for t in tokens if t.pos_ not in {"DET", "PUNCT", "CCONJ"}), None)
+    # In imperative instructions the parser can mistake an adjective/participle
+    # inside the object (“raised beds”) for the clause root. The leading verb is
+    # the instruction's action and should take precedence in that construction.
+    first_position = tokens.index(first_lexical) if first_lexical in tokens else -1
+    first_following = tokens[first_position + 1] if first_position >= 0 and first_position + 1 < len(tokens) else None
+    first_is_copular_predicate = bool(first_following and first_following.lower_ in {
+        "is", "are", "was", "were", "be", "been", "being"
+    })
+    leading_instruction = (first_lexical if first_lexical is not None
+                           and normalize_word(first_lexical.text.lower()) in ACTION_WORDS
+                           and first_lexical.pos_ in {"VERB", "NOUN", "ADJ"}
+                           and not first_is_copular_predicate
+                           else None)
+    action = leading_instruction or next((t for t in domain_verbs
+                   if t.dep_ == "ROOT" and normalize_word(t.lemma_.lower()) != "use"), None)
+    if action is None:
+        action = next((t for t in domain_verbs if normalize_word(t.lemma_.lower()) != "use"), None)
     if action is None:
         action = domain_verbs[0] if domain_verbs else (verb_tokens[0] if verb_tokens else None)
+    # The small English parser often labels imperative verbs as nouns in
+    # instructions ("Sow the seeds", "Transplant seedlings"). Recover an
+    # action-led clause from its first lexical token rather than dropping it.
+    if action is None:
+        first = first_lexical
+        following = tokens[tokens.index(first) + 1] if first in tokens and tokens.index(first) + 1 < len(tokens) else None
+        copular_predicate = bool(following and following.lower_ in {"is", "are", "was", "were", "be", "been", "being"})
+        if (first is not None and normalize_word(first.text.lower()) in ACTION_WORDS
+                and not copular_predicate):
+            action = first
     # spaCy dependency roles are preferred; noun chunks provide a useful fallback.
     # Resolve grammatical roles relative to the selected agricultural verb.
     # Taking the first subject in a whole clause can incorrectly assign a
@@ -289,7 +368,30 @@ def _event_features(clause: str) -> dict:
                if t.dep_ in {"dobj", "obj", "attr", "pobj", "oprd"}
                and t.pos_ in {"NOUN", "PROPN"}
                and (not governors or t.head in governors)]
-    patient = " ".join(t.text for t in objects[:3])
+    # Direct objects are the event patient. Prepositional objects such as
+    # "nursery" in "sow seeds in a nursery" are context/method, not patient.
+    direct_objects = [t for t in objects if t.dep_ in {"dobj", "obj", "attr", "oprd"}]
+    patient = " ".join(t.text for t in (direct_objects or objects)[:3])
+    if action is not None and action.lemma_.lower() in {
+        "apply", "spread", "spray", "add", "supply", "provide", "deliver"
+    }:
+        recipient_prepositions = {"to", "onto", "on", "around", "over"}
+        recipients = [t for t in action_subtree
+                      if t.dep_ == "pobj" and t.head.dep_ == "prep"
+                      and t.head.lower_ in recipient_prepositions]
+        if recipients:
+            patient = recipients[0].text
+    if action is not None and action == tokens[0]:
+        # In parser-misread imperatives, recover the first noun phrase after
+        # the action and stop at a preposition (e.g. "Sow tomato seeds in...").
+        tail = []
+        for token in tokens[1:]:
+            if token.pos_ in {"ADP", "CCONJ", "VERB"}:
+                break
+            if token.pos_ in {"NOUN", "PROPN"}:
+                tail.append(token.text)
+        if tail:
+            patient = " ".join(tail[:3])
     if not patient and subject is not None and subject.dep_ == "nsubjpass":
         patient = subject.text
     if not patient:
@@ -354,11 +456,14 @@ def _score_profiles(clause: str, features: dict, top_k: int = 12, query_vector=N
         query_vector = catalogue["model"].encode(retrieval_text, convert_to_tensor=True, normalize_embeddings=True)
     semantic = (util.cos_sim(query_vector, catalogue["vectors"])[0]
                 if catalogue["model"] is not None else None)
+    profiles_by_id = {profile["process_id"]: profile for profile in profiles}
     scored = []
     for profile in profiles:
         sem = semantic[profile["embedding_index"]].item() if semantic is not None else 0.0
         # Specific method phrases are independent of the parent process label.
-        method = next((m for m in profile["methods"] + profile["aliases"] if _phrase_present(retrieval_text, m)), "")
+        method = next((m for m in profile["methods"] + profile["aliases"]
+                       if _phrase_present(retrieval_text, m)
+                       and not _phrase_is_negated(retrieval_text, m)), "")
         action_fit = float(bool(
             (features["action"] and features["action"] in profile["actions"])
             or any(" " in action and _phrase_present(clause, action) for action in profile["actions"])
@@ -368,18 +473,41 @@ def _score_profiles(clause: str, features: dict, top_k: int = 12, query_vector=N
         # not turn ordinary irrigation into sprinkler/drip irrigation.
         if profile["parent_id"] in {"IRRIGATION", "FERTILIZATION"} and not method:
             continue
+        parent = profiles_by_id.get(profile["parent_id"])
+        if parent is not None:
+            explicit_name = _phrase_present(retrieval_text, profile["process_name"])
+            explicit_alias = any(_phrase_present(retrieval_text, alias) for alias in profile["aliases"])
+            positive_method = any(_phrase_present(retrieval_text, candidate)
+                                  and not _phrase_is_negated(retrieval_text, candidate)
+                                  for candidate in profile["methods"])
+            if profile["methods"] and not (explicit_name or explicit_alias or positive_method):
+                continue
+            distinct_method = bool(method and method in profile["methods"]
+                                   and method not in parent["methods"])
+            distinct_action = features["action"] in (profile["actions"] - parent["actions"])
+            patient_tokens = set(tokenize(features.get("patient", "")))
+            child_object_match = bool(patient_tokens & {normalize_word(x) for x in profile["objects"]})
+            parent_object_match = bool(patient_tokens & {normalize_word(x) for x in parent["objects"]})
+            if not (explicit_name or explicit_alias or distinct_method or distinct_action
+                    or (child_object_match and not parent_object_match)):
+                continue
         phrase_fit = float(bool(method or any(_phrase_present(retrieval_text, a) for a in profile["aliases"])))
-        object_words = set(features["words"])
+        object_words = set(tokenize(features.get("patient", "")))
         if normalize_word(features.get("patient", "")) in {"it", "them", "this", "that"}:
             # Coordinated directions often say "add compost ... and mix it";
             # use same-sentence antecedent context only for pronoun patients.
             object_words.update(tokenize(retrieval_text))
-        object_fit = 0.5 if not profile["objects"] else float(any(o in object_words or _phrase_present(retrieval_text, o) for o in profile["objects"]))
-        if profile["objects"] and features.get("patient") and object_fit == 0 and not method:
+        if not profile["objects"]:
+            object_fit = 0.5
+        else:
+            object_fit = float(any(normalize_word(o) in object_words
+                                   or _phrase_present(features.get("patient", ""), o)
+                                   for o in profile["objects"]))
+        if profile["objects"] and object_fit == 0 and not method and not phrase_fit:
             # Do not call a bed a field preparation or a crop a seed just because
             # the action verb overlaps; the selected object must fit the process.
             action_fit = 0.0
-        if features["action"] == "apply" and not object_fit and not method:
+        if features["action"] == "apply" and not object_fit and not method and not phrase_fit:
             action_fit = 0.0
         semantic_fit = max(0.0, min(1.0, (float(sem) + 1.0) / 2.0)) if semantic is not None else 0.0
 
@@ -421,7 +549,10 @@ def _detect_general_clause(clause: str, relation: str, index: int, query_vector=
     for profile_index, profile in enumerate(catalogue["all_profiles"]):
         profile_tokens = set(tokenize(profile["profile_text"]))
         name_tokens = set(tokenize(profile["process_name"]))
-        action_fit = float(features["action"] in profile_tokens)
+        # A term anywhere in a long description is weak evidence for a verb.
+        # Require an action compatible with the process name or explicit
+        # process phrase; the curated profiles handle synonym-rich actions.
+        action_fit = float(features["action"] in name_tokens)
         phrase_fit = float(_phrase_present(clause, profile["process_name"]) or features["action"] in name_tokens)
         patient_tokens = set(tokenize(features["patient"]))
         if patient_tokens & {"it", "them", "this", "that"}:
@@ -467,6 +598,46 @@ def _confidence_level(score: float) -> str:
     return "low"
 
 
+def _bart_verify_candidates(clause: str, ranked: list[dict]) -> tuple[dict | None, bool | None, float | None]:
+    """Use BART as a gated second-stage verifier, never as process selector.
+
+    Strong first-stage matches bypass BART. For uncertain clauses, BART sees
+    only action/object-compatible process candidates. It reports whether the
+    first-stage choice is supported, but never replaces or deletes that choice.
+    If its local checkpoint is unavailable, preserve the first-stage decision.
+    """
+    if not ranked:
+        return None, None, None
+    best = ranked[0]
+    gap = best["score"] - ranked[1]["score"] if len(ranked) > 1 else 1.0
+    needs_verification = (
+        best["score"] < SCORING_CONFIG["bart_trigger_score"]
+        or (len(ranked) > 1 and gap < SCORING_CONFIG["ambiguity_margin"])
+    )
+    if not needs_verification:
+        return best, None, None
+
+    candidates = ranked[:SCORING_CONFIG["bart_top_k"]]
+    names = [candidate["profile"]["process_name"] for candidate in candidates]
+    scores = classify_processes(clause, names)
+    if scores is None:
+        return best, None, None
+    if not scores:
+        return best, None, None
+
+    selected_name = best["profile"]["process_name"]
+    selected_score = scores.get(selected_name, 0.0)
+    highest_name = max(scores, key=scores.get)
+    bart_verified = (
+        selected_score >= SCORING_CONFIG["bart_min_entailment"]
+        and highest_name == selected_name
+    )
+    # BART is evidence shown to downstream callers/reviewers. It is not allowed
+    # to overrule the action/object detector: MNLI is general-domain and its
+    # agricultural label scores have not been calibrated as a decision policy.
+    return best, bart_verified, round(selected_score, 4)
+
+
 def _detect_clause(clause: str, relation: str, index: int, query_vector=None,
                    context_text: str = "") -> AgriculturalEvent | None:
     features = _event_features(clause)
@@ -479,7 +650,9 @@ def _detect_clause(clause: str, relation: str, index: int, query_vector=None,
               if candidate["action_fit"] > 0 and candidate["score"] >= SCORING_CONFIG["accept"]]
     if not ranked:
         return None
-    best = ranked[0]
+    best, bart_verified, bart_score = _bart_verify_candidates(clause, ranked)
+    if best is None:
+        return None
     p = best["profile"]
     score = best["score"]
     # Do not guess when there is no process action/phrase or candidates are tied.
@@ -539,7 +712,7 @@ def _detect_clause(clause: str, relation: str, index: int, query_vector=None,
         context_verified=bool(best["action_fit"] and (best["object_fit"] or best["phrase_fit"])),
         category=p["category"], sign_concepts=sign_concepts,
         semantic_confidence=round(best["semantic"], 4),
-        bart_verified=None, bart_score=None, sequence_relation=relation,
+        bart_verified=bart_verified, bart_score=bart_score, sequence_relation=relation,
     )
 
 
@@ -560,8 +733,6 @@ def detect_process_many(sentences: list[str]) -> list[dict]:
             query_vector = vectors[vector_index] if vectors is not None else None
             vector_index += 1
             event = _detect_clause(clause, relation, len(events) + 1, query_vector, sentence_context)
-            if event is None:
-                event = _detect_general_clause(clause, relation, len(events) + 1, query_vector, sentence_context)
             if event:
                 # Coordinated actions that resolve to one process (for example,
                 # "plough and level the field") describe one event unless the

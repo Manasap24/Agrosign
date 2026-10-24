@@ -1,66 +1,63 @@
-# from functools import lru_cache
-# from transformers import pipeline
+"""Lazy, local-only BART-MNLI verification for shortlisted process candidates."""
 
+from __future__ import annotations
 
-# @lru_cache(maxsize=1)
-# def load_bart_model():
-#     return pipeline("text-classification", model="facebook/bart-large-mnli")
-
-
-# classifier = load_bart_model()
-
-
-# def verify_process(sentence, process_name):
-#     hypothesis = f"This sentence describes the agricultural process " f"{process_name}."
-
-#     result = classifier({"text": sentence, "text_pair": hypothesis})
-
-#     label = result["label"]
-#     score = result["score"]
-
-#     if label.lower() == "entailment":
-#         return True, score
-
-#     return False, score
-
-
+import logging
 from functools import lru_cache
 
-from transformers import pipeline
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
+
+LOGGER = logging.getLogger(__name__)
+MODEL_ID = "facebook/bart-large-mnli"
 
 
 @lru_cache(maxsize=1)
 def load_bart_model():
-    return pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+    """Load BART only on demand and never start a network download at runtime."""
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, local_files_only=True)
+        model = AutoModelForSequenceClassification.from_pretrained(
+            MODEL_ID, local_files_only=True
+        )
+        return pipeline(
+            "zero-shot-classification", model=model, tokenizer=tokenizer
+        )
+    except Exception as exc:
+        # BART is an optional second-stage verifier. A missing local checkpoint
+        # must not take down text translation or cause repeated load attempts.
+        LOGGER.warning("BART verifier unavailable; retaining first-stage result: %s", exc)
+        return None
 
 
-def classify_processes(sentence, process_names):
-    """Compare one sentence against a candidate set with one cached model call.
+def classify_processes(sentence: str, process_names: list[str]) -> dict[str, float] | None:
+    """Return independent entailment scores for a shortlist of process labels.
 
-    This is an optional offline-capable verifier; the production event detector
-    currently does not call it because the repository has no labeled evidence
-    that its extra latency improves process decisions.
+    `multi_label=True` is important here: candidate labels are scored against
+    entailment/contradiction independently instead of forcing one winner among
+    the candidates. The premise is the complete action clause, so a negated
+    instruction can still be recognized as concerning the underlying process.
     """
-
-    if not process_names:
+    labels = list(dict.fromkeys(str(name).strip() for name in process_names if str(name).strip()))
+    if not labels:
         return {}
 
-    result = load_bart_model()(
+    classifier = load_bart_model()
+    if classifier is None:
+        return None
+
+    result = classifier(
         sentence,
-        candidate_labels=process_names,
-        multi_label=False,
-        hypothesis_template=("The agricultural process described is {}."),
+        candidate_labels=labels,
+        multi_label=True,
+        hypothesis_template="This sentence concerns the agricultural process of {}.",
     )
+    return {str(label): float(score) for label, score in zip(result["labels"], result["scores"])}
 
-    return dict(zip(result["labels"], result["scores"]))
 
-
-def verify_process(sentence, process_name, description="", context_examples=""):
-    # Kept for older callers. A one-label zero-shot score is not a useful
-    # discriminator; new ranking callers should pass their Top-K candidates to
-    # classify_processes() in a single invocation.
-    result = classify_processes(sentence, [process_name])
-
-    score = result.get(process_name, 0.0)
-
+def verify_process(sentence: str, process_name: str, description: str = "", context_examples: str = ""):
+    """Compatibility wrapper; callers should prefer shortlist classification."""
+    scores = classify_processes(sentence, [process_name])
+    if scores is None:
+        return None, None
+    score = scores.get(process_name, 0.0)
     return score >= 0.50, score

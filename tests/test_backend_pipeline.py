@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from manual_translator import translate_manual
 from main import app, translate, TextRequest, translate_text_endpoint, TranslateTextRequest
-from process_detector import detect_process, initialize_process_detector
+from process_detector import detect_process, initialize_process_detector, _bart_verify_candidates
 from sign_sequence_generator import generate_video_sequence
 
 
@@ -26,6 +26,51 @@ class BackendPipelineTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         initialize_process_detector()
+
+    def test_bart_is_only_called_for_uncertain_shortlisted_candidates(self):
+        strong = [{"score": 0.91, "profile": {"process_name": "Irrigation"}}]
+        with patch("process_detector.classify_processes") as classify:
+            chosen, verified, bart_score = _bart_verify_candidates("The farmer irrigates the field.", strong)
+        classify.assert_not_called()
+        self.assertIs(chosen, strong[0])
+        self.assertIsNone(verified)
+        self.assertIsNone(bart_score)
+
+        close = [
+            {"score": 0.69, "profile": {"process_name": "Irrigation"}},
+            {"score": 0.67, "profile": {"process_name": "Water Management"}},
+            {"score": 0.40, "profile": {"process_name": "Fertilization"}},
+            {"score": 0.39, "profile": {"process_name": "Soil Preparation"}},
+        ]
+        with patch("process_detector.classify_processes", return_value={
+            "Irrigation": 0.62,
+            "Water Management": 0.83,
+            "Fertilization": 0.12,
+        }) as classify:
+            chosen, verified, bart_score = _bart_verify_candidates(
+                "The farmer supplies water to the crops.", close
+            )
+        self.assertEqual([call.args[1] for call in classify.call_args_list], [[
+            "Irrigation", "Water Management", "Fertilization"
+        ]])
+        # BART verifies the first-stage choice but does not substitute its own
+        # general-domain label for a process selected by action/object evidence.
+        self.assertEqual(chosen["profile"]["process_name"], "Irrigation")
+        self.assertFalse(verified)
+        self.assertEqual(bart_score, 0.62)
+
+    def test_bart_uncertain_result_does_not_force_a_process(self):
+        close = [
+            {"score": 0.60, "profile": {"process_name": "Irrigation"}},
+            {"score": 0.59, "profile": {"process_name": "Water Management"}},
+        ]
+        with patch("process_detector.classify_processes", return_value={
+            "Irrigation": 0.54, "Water Management": 0.60
+        }):
+            chosen, verified, bart_score = _bart_verify_candidates("ambiguous clause", close)
+        self.assertIs(chosen, close[0])
+        self.assertFalse(verified)
+        self.assertEqual(bart_score, 0.54)
 
     def test_benchmark_processes_context_and_ideal_concepts(self):
         benchmark = ROOT / "dataset" / "process_recognition_benchmark.csv"

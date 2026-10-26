@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from manual_translator import translate_manual
 from main import app, translate, TextRequest, translate_text_endpoint, TranslateTextRequest
-from process_detector import detect_process, initialize_process_detector, _bart_verify_candidates
+from process_detector import detect_process, initialize_process_detector, _bart_verify_candidates, _clause_spans
 from sign_sequence_generator import generate_video_sequence
 
 
@@ -89,6 +89,43 @@ class BackendPipelineTests(unittest.TestCase):
                     concepts = [concept for event in events for concept in event["sign_concepts"]]
                     for concept in case["expected_ideal_concepts"].split("|"):
                         self.assertIn(concept, concepts)
+
+    def test_coordinated_actions_are_separate_without_splitting_subordinate_clauses(self):
+        cases = [
+            (
+                "The farmer clears weeds, removes stones.",
+                ["FIELD_SANITATION", "LAND_CLEARING"],
+                ["clears weeds", "removes stones"],
+            ),
+            (
+                "The farmer clears weeds, removes stones, and levels the field.",
+                ["FIELD_SANITATION", "LAND_CLEARING", "SOIL_PREPARATION"],
+                ["clears weeds", "removes stones", "levels the field"],
+            ),
+        ]
+        for text, expected_ids, evidence_parts in cases:
+            with self.subTest(text=text):
+                events = detect_process(text)["events"]
+                self.assertEqual([event["process_id"] for event in events], expected_ids)
+                for event, evidence in zip(events, evidence_parts):
+                    self.assertIn(evidence, event["evidence"].lower())
+                self.assertEqual([event["sequence_index"] for event in events],
+                                 list(range(1, len(events) + 1)))
+
+    def test_shared_object_compound_action_and_subordinate_clause_are_preserved(self):
+        shared_object = [clause.lower() for clause, _ in _clause_spans(
+            "The farmer ploughs and levels the field."
+        )]
+        self.assertEqual(len(shared_object), 2)
+        self.assertIn("ploughs", shared_object[0])
+        self.assertIn("levels the field", shared_object[1])
+
+        subordinate = detect_process(
+            "The farmer clears weeds, which are growing near the field, and levels the field."
+        )["events"]
+        self.assertEqual([event["process_id"] for event in subordinate],
+                         ["FIELD_SANITATION", "SOIL_PREPARATION"])
+        self.assertIn("which are growing", subordinate[0]["evidence"].lower())
 
     def test_sequence_order_and_api_compatible_response(self):
         result = translate_manual("First prepare the soil, then sow the seeds and finally irrigate the field.")

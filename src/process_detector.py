@@ -258,23 +258,36 @@ def _clause_spans(text: str) -> list[tuple[str, str]]:
     actions = sorted(ACTION_WORDS, key=len, reverse=True)
     action_lookahead = r"(?=" + "|".join(re.escape(a) for a in actions) + r"\b)"
     # Split explicit discourse sequencing and coordinated verb events, not every "and".
-    pattern = re.compile(r"\s*(?:(first|then|next|finally|subsequently|afterwards|but)\b\s*|(?:,\s*)?\band\b\s*)", re.I)
+    pattern = re.compile(
+        r"\s*(?:(first|then|next|finally|subsequently|afterwards|but)\b\s*"
+        r"|,\s*(?=\w)|(?:,\s*)?\band\b\s*)",
+        re.I,
+    )
     pieces = []
     pos = 0
     previous_relation = ""
     for match in pattern.finditer(clean):
         tail = clean[match.end():]
         marker = (match.group(1) or "").lower()
+        comma_only = match.group(0).lstrip().startswith(",") and not re.match(r"(?i)^,?\s*and\b", match.group(0))
         # Conjunctions split only when followed by another supported action.
         first_word = re.match(r"[a-z]+", tail.lstrip(" ,"), flags=re.I)
         action_led = bool(first_word and normalize_word(first_word.group(0)) in ACTION_WORDS)
         if not marker and not (re.match(action_lookahead, tail.lstrip(" ,"), flags=re.I) or action_led):
             continue
+        # A bare comma marks a coordinated action only when there is already
+        # an action on its left and the continuation starts with a supported
+        # action. This avoids splitting ordinary lists and comma-led clauses
+        # such as "if the soil is dry, irrigate the field".
+        previous_text = clean[pos:match.start()]
+        previous_has_action = any(_phrase_present(previous_text, action) for action in actions)
+        if comma_only and not (previous_has_action and action_led):
+            continue
         piece = clean[pos:match.start()].strip(" ,.")
         piece = re.sub(r"(?i)\s+and$", "", piece)
         if piece:
             pieces.append((piece, previous_relation))
-        previous_relation = marker
+        previous_relation = "coordinated" if comma_only else marker
         pos = match.end()
     last = clean[pos:].strip(" ,.")
     if last:
@@ -503,6 +516,12 @@ def _score_profiles(clause: str, features: dict, top_k: int = 12, query_vector=N
             object_fit = float(any(normalize_word(o) in object_words
                                    or _phrase_present(features.get("patient", ""), o)
                                    for o in profile["objects"]))
+        # The local metadata has object concepts for land clearing (including
+        # stones), but its action list only contains "clear". Let the
+        # well-defined, object-grounded verb "remove" retrieve those existing
+        # process profiles without adding a sentence-specific mapping.
+        if features.get("coordinated_action") and features["action"] == "remove" and object_fit:
+            action_fit = 1.0
         if profile["objects"] and object_fit == 0 and not method and not phrase_fit:
             # Do not call a bed a field preparation or a crop a seed just because
             # the action verb overlaps; the selected object must fit the process.
@@ -639,8 +658,9 @@ def _bart_verify_candidates(clause: str, ranked: list[dict]) -> tuple[dict | Non
 
 
 def _detect_clause(clause: str, relation: str, index: int, query_vector=None,
-                   context_text: str = "") -> AgriculturalEvent | None:
+                   context_text: str = "", coordinated_action: bool = False) -> AgriculturalEvent | None:
     features = _event_features(clause)
+    features["coordinated_action"] = coordinated_action
     profiles = _catalogue()["profiles"]
     ranked = _score_profiles(clause, features, max(SCORING_CONFIG["top_k"], len(profiles)),
                               query_vector, context_text)
@@ -732,15 +752,20 @@ def detect_process_many(sentences: list[str]) -> list[dict]:
         for clause, relation in clauses:
             query_vector = vectors[vector_index] if vectors is not None else None
             vector_index += 1
-            event = _detect_clause(clause, relation, len(events) + 1, query_vector, sentence_context)
+            event_relation = relation if relation != "coordinated" else ""
+            event = _detect_clause(
+                clause, event_relation, len(events) + 1, query_vector, sentence_context,
+                coordinated_action=relation == "coordinated",
+            )
             if event:
-                # Coordinated actions that resolve to one process (for example,
-                # "plough and level the field") describe one event unless the
-                # text explicitly marks a later occurrence.
+                # Retain comma-delimited coordinated actions as distinct events
+                # even when they map to one broad process. Other same-process
+                # fragments keep the established compound-operation behavior.
                 existing = next((item for item in events
                                  if item.process_id == event.process_id
                                  and item.polarity == event.polarity
                                  and item.status == event.status
+                                 and relation != "coordinated"
                                  and not event.sequence_relation), None)
                 if existing is not None:
                     existing.evidence = f"{existing.evidence}; {event.evidence}"

@@ -1,4 +1,4 @@
-keyword,synonyms,video_path
+﻿keyword,synonyms,video_path
 agriculture,cultivating|cultivation,sign_videos/agriculture.mp4
 farm,farms|farmland,sign_videos/farm.mp4
 farmer,farmers|agriculturist|grower,sign_videos/farmer.mp4
@@ -116,5 +116,6 @@ collect,collects|collected|collecting|gather|gathers|gathered,sign_videos/collec
 separate,separates|separated|separating|separation,sign_videos/separate.mp4
 control,controls|controlled|controlling,sign_videos/control.mp4
 check,checks|checked|checking|inspect|inspects|inspected|monitor|monitors|monitored|monitoring,sign_videos/check.mp4
-move,moves|moved|moving|transplant|transplants|transplanted|transplanting,sign_videos/move.mp4
+move,moves|moved|moving,sign_videos/move.mp4
 clear,clears|cleared|clearing,sign_videos/clear.mp4
+fertilization,fertilize|fertilizing|apply fertilizer|manuring,sign_videos/fertilization.mp4

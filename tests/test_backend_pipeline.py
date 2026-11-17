@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from manual_translator import translate_manual
 from main import app, translate, TextRequest, translate_text_endpoint, TranslateTextRequest
 from process_detector import detect_process, initialize_process_detector
-from sign_sequence_generator import generate_video_sequence
+from sign_sequence_generator_old import generate_video_sequence
 
 
 class BackendPipelineTests(unittest.TestCase):

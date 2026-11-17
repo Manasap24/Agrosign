@@ -62,7 +62,7 @@ ACTION_WORDS = {
     "manure", "apply", "applies", "applied", "use", "uses", "used", "using", "spray", "sprays", "sprayed",
     "sprinkle", "sprinkled", "control", "controls", "controlled", "manage",
     "managed", "harvest", "harvests", "harvested", "reap", "reaped", "collect",
-    "collected", "spread",
+    "collected", "spread", "protect", "protects", "protected", "protecting",
 }
 IRREGULAR = {
     "waters": "water", "watered": "water", "watering": "water",
@@ -200,8 +200,35 @@ def _clause_spans(text: str) -> list[tuple[str, str]]:
     if m:
         relation, subclause, main = m.groups()
         if relation.lower() == "after":
-            return [(subclause, "after_reference"), (main, "after")]
+            main_clauses = _clause_spans(main)
+            if main_clauses:
+                first, first_relation = main_clauses[0]
+                main_clauses[0] = (first, "after")
+            return [(subclause, "after_reference")] + main_clauses
         return [(main, "before"), (subclause, "before_reference")]
+
+    # Embedded temporal clauses need the same treatment as fronted ones.
+    # Without this split, "prepares the field before planting seeds" is sent
+    # to the detector as one event, so the planting/seed signs leak into the
+    # soil-preparation event and appear before the preparation sign.
+    trailing_temporal = re.match(r"(?is)^(.+?)\s+\b(before|after)\b\s+(.+)$", clean)
+    if trailing_temporal:
+        main, relation, reference = trailing_temporal.groups()
+        main_parts = _clause_spans(main)
+        reference_parts = _clause_spans(reference)
+        if relation.lower() == "before":
+            if main_parts:
+                first, _ = main_parts[-1]
+                main_parts[-1] = (first, "before")
+            return main_parts + [(part, "before_reference") for part, _ in reference_parts]
+        return ([(part, "after_reference") for part, _ in reference_parts]
+                + [(part, "after" if i == 0 else rel) for i, (part, rel) in enumerate(main_parts)])
+
+    # Ignore a fronted condition while splitting its main clause. The full
+    # sentence remains available as retrieval context for process scoring.
+    conditional = re.match(r"(?i)\s*(?:when|if|while|because|since)\s+.+?,\s*(.+)$", clean)
+    if conditional:
+        return _clause_spans(conditional.group(1))
 
     actions = sorted(ACTION_WORDS, key=len, reverse=True)
     action_lookahead = r"(?=" + "|".join(re.escape(a) for a in actions) + r"\b)"
@@ -216,7 +243,16 @@ def _clause_spans(text: str) -> list[tuple[str, str]]:
         # Conjunctions split only when followed by another supported action.
         first_word = re.match(r"[a-z]+", tail.lstrip(" ,"), flags=re.I)
         action_led = bool(first_word and normalize_word(first_word.group(0)) in ACTION_WORDS)
-        if not marker and not (re.match(action_lookahead, tail.lstrip(" ,"), flags=re.I) or action_led):
+        # Passive coordinated clauses often begin with their patient rather
+        # than the verb: "weeds are removed, and crops are protected".
+        tail_doc = _nlp()(tail)
+        passive_or_full_clause = (
+            any(t.dep_ in {"nsubj", "nsubjpass"} for t in tail_doc)
+            and any(normalize_word(t.lemma_.lower()) in ACTION_WORDS
+                    and t.pos_ in {"VERB", "AUX"} for t in tail_doc)
+        )
+        if not marker and not (re.match(action_lookahead, tail.lstrip(" ,"), flags=re.I)
+                               or action_led or passive_or_full_clause):
             continue
         piece = clean[pos:match.start()].strip(" ,.")
         piece = re.sub(r"(?i)\s+and$", "", piece)
@@ -250,11 +286,17 @@ def _clause_spans(text: str) -> list[tuple[str, str]]:
                 while root.head != root and root.head.pos_ not in {"VERB", "AUX"}:
                     root = root.head
                 subject = piece[subject_token.idx:subject_token.idx + len(subject_token.text)]
+        first_word = re.match(r"[a-z]+", piece.lstrip(), flags=re.I)
+        starts_with_action = bool(first_word and normalize_word(first_word.group(0)) in ACTION_WORDS)
         starts_with_subject = bool(subject and re.match(
             r"(?i)^(?:(?:the|a|an)\s+)?" + re.escape(subject) + r"\b", piece
         ))
-        if subject and not starts_with_subject and any(_phrase_present(piece, a) for a in actions):
-            piece = f"{subject} {piece}"
+        # Carry the subject only into verb-led fragments. A coordinated clause
+        # that starts with its own patient ("crops are protected") already has
+        # an explicit subject and should remain intact.
+        if subject and not starts_with_subject and starts_with_action:
+            prefix = subject if subject.lower() in {"he", "she", "they", "we", "you", "i"} else f"The {subject}"
+            piece = f"{prefix} {piece}"
         result.append((piece, relation))
     return result
 
@@ -297,6 +339,17 @@ def _event_features(clause: str) -> dict:
         patient = next((c.text for c in noun_chunks if c.root.dep_ not in {"nsubj", "nsubjpass"}), "")
 
     lowered = clause.lower().replace("’", "'").replace("‘", "'")
+    # Exclude the noun phrase after a contrastive negation from process
+    # matching. In "applies fertilizer, not pesticide", pesticide is not
+    # evidence for Pesticide Application.
+    contrast = re.search(
+        r",\s*(?:but\s+)?not\s+([^,.;]+)$|,\s*rather\s+than\s+([^,.;]+)$",
+        lowered,
+    )
+    if contrast:
+        excluded = next((group for group in contrast.groups() if group), "")
+        words.difference_update(normalize_word(w) for w in re.findall(r"[a-z]+", excluded))
+        lemmas.difference_update(normalize_word(w) for w in re.findall(r"[a-z]+", excluded))
     has_explicit_subject = subject is not None
     # Scope negation to the selected action. Trailing contrast such as
     # "applies fertilizer, not pesticide" negates a noun, not the action.
@@ -304,23 +357,23 @@ def _event_features(clause: str) -> dict:
     if action is not None:
         neg_token = next((token for token in action.children
                           if token.idx < action.idx
-                          and (token.dep_ == "neg" or token.lower_ in {"not", "n't", "never"})), None)
+                          and (token.dep_ == "neg" or token.lower_ in {"not", "no", "n't", "never"})), None)
         if neg_token is not None:
             negation = neg_token.text
         else:
             prefix = re.sub(r"[^a-z']+", " ", clause[:action.idx].lower().replace("’", "'").replace("‘", "'")).strip()
             match = re.search(
                 r"(?:\b(?:do|does|did|should|must|will|can|could|would|has|have|had)\s+)?"
-                r"(not|n't|never)\s*$", prefix
+                r"(not|no|n't|never)\s*$", prefix
             )
             if match:
                 negation = match.group(1)
     if negation:
         polarity = "negative"
         status = "negated" if has_explicit_subject else "prohibited"
-        if re.search(r"\b(?:should|must)\s+not\b|\b(?:shouldn't|mustn't)\b", lowered) or (
+        if re.search(r"\b(?:should|must)\s+(?:not|never|no)\b|\b(?:shouldn't|mustn't)\b", lowered) or (
             not has_explicit_subject
-            and re.search(r"\b(?:do|does|did)\s+not\b|\b(?:don't|doesn't|didn't)\b", lowered)
+            and re.search(r"\b(?:do|does|did)\s+(?:not|never|no)\b|\b(?:don't|doesn't|didn't)\b|^\s*no\b", lowered)
         ):
             status = "prohibited"
         polarity_evidence = negation
@@ -349,16 +402,18 @@ def _score_profiles(clause: str, features: dict, top_k: int = 12, query_vector=N
     profiles = catalogue["profiles"]
     if not profiles:
         return []
-    retrieval_text = context_text or clause
+    # Process decisions must be supported by this event's clause. Using the
+    # entire paragraph here lets a nearby word (for example "crops") pull in
+    # unrelated events such as crop rotation or fertilization.
     if catalogue["model"] is not None and query_vector is None:
-        query_vector = catalogue["model"].encode(retrieval_text, convert_to_tensor=True, normalize_embeddings=True)
+        query_vector = catalogue["model"].encode(clause, convert_to_tensor=True, normalize_embeddings=True)
     semantic = (util.cos_sim(query_vector, catalogue["vectors"])[0]
                 if catalogue["model"] is not None else None)
     scored = []
     for profile in profiles:
         sem = semantic[profile["embedding_index"]].item() if semantic is not None else 0.0
         # Specific method phrases are independent of the parent process label.
-        method = next((m for m in profile["methods"] + profile["aliases"] if _phrase_present(retrieval_text, m)), "")
+        method = next((m for m in profile["methods"] + profile["aliases"] if _phrase_present(clause, m)), "")
         action_fit = float(bool(
             (features["action"] and features["action"] in profile["actions"])
             or any(" " in action and _phrase_present(clause, action) for action in profile["actions"])
@@ -366,15 +421,20 @@ def _score_profiles(clause: str, features: dict, top_k: int = 12, query_vector=N
         ))
         # A subtype must be explicitly present; semantic resemblance alone must
         # not turn ordinary irrigation into sprinkler/drip irrigation.
-        if profile["parent_id"] in {"IRRIGATION", "FERTILIZATION"} and not method:
+        if (profile["process_id"] in {"DRIP_IRRIGATION", "SPRINKLER_IRRIGATION", "ORGANIC_FERTILIZATION"}
+                and not method):
             continue
-        phrase_fit = float(bool(method or any(_phrase_present(retrieval_text, a) for a in profile["aliases"])))
+        phrase_fit = float(bool(method or any(_phrase_present(clause, a) for a in profile["aliases"])))
         object_words = set(features["words"])
+        object_context = clause
         if normalize_word(features.get("patient", "")) in {"it", "them", "this", "that"}:
             # Coordinated directions often say "add compost ... and mix it";
             # use same-sentence antecedent context only for pronoun patients.
-            object_words.update(tokenize(retrieval_text))
-        object_fit = 0.5 if not profile["objects"] else float(any(o in object_words or _phrase_present(retrieval_text, o) for o in profile["objects"]))
+            object_context = context_text or clause
+            object_words.update(tokenize(object_context))
+        object_fit = 0.5 if not profile["objects"] else float(any(
+            o in object_words or _phrase_present(object_context, o) for o in profile["objects"]
+        ))
         if profile["objects"] and features.get("patient") and object_fit == 0 and not method:
             # Do not call a bed a field preparation or a crop a seed just because
             # the action verb overlaps; the selected object must fit the process.
@@ -414,19 +474,20 @@ def _detect_general_clause(clause: str, relation: str, index: int, query_vector=
     catalogue = _catalogue()
     if catalogue["model"] is None:
         return None
-    retrieval_text = context_text or clause
-    query = query_vector if query_vector is not None else catalogue["model"].encode(retrieval_text, convert_to_tensor=True, normalize_embeddings=True)
+    query = query_vector if query_vector is not None else catalogue["model"].encode(clause, convert_to_tensor=True, normalize_embeddings=True)
     similarities = util.cos_sim(query, catalogue["vectors"])[0]
     candidates = []
     for profile_index, profile in enumerate(catalogue["all_profiles"]):
-        profile_tokens = set(tokenize(profile["profile_text"]))
         name_tokens = set(tokenize(profile["process_name"]))
-        action_fit = float(features["action"] in profile_tokens)
+        # A verb appearing anywhere in a long process description is not
+        # evidence that the clause expresses that process. Use the process
+        # label itself for legacy matching, just as curated metadata does.
+        action_fit = float(features["action"] in name_tokens)
         phrase_fit = float(_phrase_present(clause, profile["process_name"]) or features["action"] in name_tokens)
         patient_tokens = set(tokenize(features["patient"]))
         if patient_tokens & {"it", "them", "this", "that"}:
-            patient_tokens = set(tokenize(retrieval_text))
-        object_fit = float(bool(patient_tokens & profile_tokens))
+            patient_tokens.update(tokenize(context_text or clause))
+        object_fit = float(bool(patient_tokens & name_tokens))
         semantic = float(similarities[profile_index].item())
         if not (action_fit or phrase_fit or (semantic >= 0.62 and object_fit)):
             continue
@@ -469,14 +530,59 @@ def _confidence_level(score: float) -> str:
 
 def _detect_clause(clause: str, relation: str, index: int, query_vector=None,
                    context_text: str = "") -> AgriculturalEvent | None:
+    # A gerund after "ready for" describes a purpose/state, not an action
+    # currently being performed ("the soil is ready for sowing"). The words
+    # still go through the vocabulary fallback so the result/state can be
+    # shown, but they must not create a second SEED_SOWING process event.
+    if re.search(r"\b(?:ready|prepared)\s+for\s+(?:the\s+)?(?:sowing|planting)\b", clause, re.I):
+        return None
     features = _event_features(clause)
     profiles = _catalogue()["profiles"]
-    ranked = _score_profiles(clause, features, max(SCORING_CONFIG["top_k"], len(profiles)),
-                              query_vector, context_text)
+    scored_profiles = _score_profiles(clause, features, max(SCORING_CONFIG["top_k"], len(profiles)),
+                                      query_vector, context_text)
+    ranked = scored_profiles
     # Do not let a semantically similar but action-incompatible profile block
     # a lower-ranked process whose action and object fit the clause.
-    ranked = [candidate for candidate in ranked
-              if candidate["action_fit"] > 0 and candidate["score"] >= SCORING_CONFIG["accept"]]
+    accepted = [candidate for candidate in ranked
+                if candidate["action_fit"] > 0 and candidate["score"] >= SCORING_CONFIG["accept"]]
+    # Prefer the curated organic-fertilizer subtype when the input explicitly
+    # names an organic product; the broader fertilization profile also matches
+    # its action and crop object and can otherwise win on generic evidence.
+    if re.search(r"\b(?:organic\s+fertili[sz]\w*|organic\s+manure|biofertili[sz]\w*)\b", clause, re.I):
+        organic = next((candidate for candidate in scored_profiles
+                        if candidate["profile"]["process_id"] == "ORGANIC_FERTILIZATION"), None)
+        if organic is not None and organic["action_fit"] > 0 and organic["phrase_fit"] > 0:
+            accepted = [organic] + [candidate for candidate in accepted if candidate is not organic]
+    # Compost incorporated into soil is a soil amendment. The generic
+    # fertilization profile also matches "add" and can otherwise win because
+    # its category is more common in the training examples.
+    elif re.search(r"\bcompost\b", clause, re.I) and re.search(r"\bsoil\b", clause, re.I):
+        amendment = next((candidate for candidate in scored_profiles
+                          if candidate["profile"]["process_id"] == "SOIL_AMENDMENT"), None)
+        if amendment is not None and amendment["action_fit"] > 0 and amendment["phrase_fit"] > 0:
+            accepted = [amendment] + [candidate for candidate in accepted if candidate is not amendment]
+    # Prefer the specific pest-management profile over broad crop protection
+    # when the sentence explicitly mentions pests or insects.
+    elif (re.search(r"\bprotect\w*\b", clause, re.I)
+          and re.search(r"\b(?:pests?|insects?)\b", clause + " " + context_text, re.I)):
+        pest_control = next((candidate for candidate in scored_profiles
+                             if candidate["profile"]["process_id"] == "PEST_CONTROL"), None)
+        if pest_control is not None and pest_control["action_fit"] > 0:
+            accepted = [pest_control] + [candidate for candidate in accepted if candidate is not pest_control]
+    elif (re.search(r"\b(?:spray\w*|apply\w*|treat\w*)\b", clause, re.I)
+          and re.search(r"\b(?:pesticides?|insecticides?|herbicides?|fungicides?)\b", clause, re.I)):
+        pesticide_application = next((candidate for candidate in scored_profiles
+                                      if candidate["profile"]["process_id"] == "PESTICIDE_APPLICATION"), None)
+        if pesticide_application is not None and pesticide_application["action_fit"] > 0:
+            accepted = [pesticide_application] + [candidate for candidate in accepted
+                                                   if candidate is not pesticide_application]
+    elif (features["action"] in {"remove", "clear", "weed"}
+          and re.search(r"\bweeds?\b", clause, re.I)):
+        weeding = next((candidate for candidate in scored_profiles
+                        if candidate["profile"]["process_id"] == "WEEDING"), None)
+        if weeding is not None and weeding["action_fit"] > 0:
+            accepted = [weeding] + [candidate for candidate in accepted if candidate is not weeding]
+    ranked = accepted
     if not ranked:
         return None
     best = ranked[0]
@@ -546,8 +652,7 @@ def _detect_clause(clause: str, relation: str, index: int, query_vector=None,
 def detect_process_many(sentences: list[str]) -> list[dict]:
     """Detect a document's sentences with one batched embedding call."""
     clauses_by_sentence = [_clause_spans(sentence) for sentence in sentences]
-    flat_clauses = [f"{sentence} {clause}" for sentence, groups in zip(sentences, clauses_by_sentence)
-                    for clause, _ in groups]
+    flat_clauses = [clause for groups in clauses_by_sentence for clause, _ in groups]
     model = _catalogue()["model"]
     vectors = (model.encode(flat_clauses, batch_size=32, convert_to_tensor=True, normalize_embeddings=True)
                if model is not None and flat_clauses else None)
@@ -555,21 +660,35 @@ def detect_process_many(sentences: list[str]) -> list[dict]:
     vector_index = 0
     for clauses in clauses_by_sentence:
         events = []
+        unmatched_clauses = []
         sentence_context = sentences[len(results)]
-        for clause, relation in clauses:
+        for clause_index, (clause, relation) in enumerate(clauses):
             query_vector = vectors[vector_index] if vectors is not None else None
             vector_index += 1
-            event = _detect_clause(clause, relation, len(events) + 1, query_vector, sentence_context)
-            if event is None:
+            purpose_state = bool(re.search(
+                r"\b(?:ready|prepared)\s+for\s+(?:the\s+)?(?:sowing|planting)\b",
+                clause, re.I,
+            ))
+            event = (None if purpose_state else
+                     _detect_clause(clause, relation, len(events) + 1, query_vector, sentence_context))
+            if event is None and not purpose_state:
                 event = _detect_general_clause(clause, relation, len(events) + 1, query_vector, sentence_context)
+            if event is None:
+                unmatched_clauses.append({"text": clause, "relation": relation,
+                                          "clause_index": clause_index})
             if event:
-                # Coordinated actions that resolve to one process (for example,
-                # "plough and level the field") describe one event unless the
-                # text explicitly marks a later occurrence.
+                event.clause_index = clause_index
+                # Collapse only an identical repeated detector result. Distinct
+                # actions (such as ploughing then levelling) remain separate even
+                # when both belong to the broad land-preparation category.
+                normalized_evidence = re.sub(r"[^a-z0-9]+", " ", event.evidence.lower()).strip()
                 existing = next((item for item in events
                                  if item.process_id == event.process_id
+                                 and item.action == event.action
                                  and item.polarity == event.polarity
                                  and item.status == event.status
+                                 and re.sub(r"[^a-z0-9]+", " ", item.evidence.lower()).strip()
+                                     == normalized_evidence
                                  and not event.sequence_relation), None)
                 if existing is not None:
                     existing.evidence = f"{existing.evidence}; {event.evidence}"
@@ -595,7 +714,8 @@ def detect_process_many(sentences: list[str]) -> list[dict]:
             "context_verified": event.context_verified,
             "event": event.to_dict(),
         } for event in events]
-        results.append({"processes": process_rows, "events": [event.to_dict() for event in events]})
+        results.append({"processes": process_rows, "events": [event.to_dict() for event in events],
+                        "unmatched_clauses": unmatched_clauses})
     return results
 
 

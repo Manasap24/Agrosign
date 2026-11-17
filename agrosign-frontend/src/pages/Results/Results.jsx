@@ -30,6 +30,14 @@ function Results() {
   const originalText = data.translations
     .map((item) => item.sentence)
     .join(" ");
+  const meaningText = data.meaning || originalText;
+  const glossTokens = data.isl_gloss || data.translations
+    .flatMap((item) => item.isl_gloss || []);
+  const missingSigns = [...new Map(
+    (data.missing_sign_concepts || [])
+      .filter((item) => item && item.video_available === false)
+      .map((item) => [item.concept_id || item.concept, item.concept || item.concept_id])
+  ).values()];
 
   // Detected Language
   const language = "English";
@@ -100,15 +108,27 @@ function Results() {
 
         <h2>Conversion Results</h2>
 
-        {/* Original Text */}
+        {/* Plain-English meaning retained from the input sentence */}
         <div className="original">
-
-          <label>Original Text</label>
+          <label>English Meaning</label>
 
           <div className="text-box">
-            {originalText}
+            {meaningText}
           </div>
 
+        </div>
+
+        {/* Meaning and ISL gloss */}
+        <div className="original">
+          <label>ISL Gloss (approximate sign order)</label>
+          <div className="text-box">
+            {glossTokens.length > 0 ? glossTokens.join(" → ") : "No gloss could be generated."}
+          </div>
+          {missingSigns.length > 0 && (
+            <p className="missing-signs" role="status">
+              No video available for: {missingSigns.join(", ")}
+            </p>
+          )}
         </div>
 
         {/* Information */}

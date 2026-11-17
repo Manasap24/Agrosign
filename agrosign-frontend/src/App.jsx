@@ -27,7 +27,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/text" element={<TextToSign />} />
         <Route path="/speech" element={<SpeechToSign />} />
-        <Route path="/pdf" element={<PdfToSign />} />
+        {/* <Route path="/pdf" element={<PdfToSign />} /> */}
         <Route path="/results" element={<Results />} />
       </Routes>
     </div>

@@ -17,6 +17,7 @@ class AgriculturalEvent:
     status: str = "asserted"
     tense: str = "unknown"
     sequence_index: int = 1
+    clause_index: int = 0
     temporal_links: list[dict[str, Any]] = field(default_factory=list)
     evidence: str = ""
     confidence: float = 0.0

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-labelledby="title desc">
+<title id="title">AgroSign system flow</title><desc id="desc">Architecture flow from text and speech input through language normalization, agriculture process detection, ISL sequencing and sign video retrieval to the frontend.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4f8fc"/><stop offset="1" stop-color="#edf6f3"/></linearGradient>
+ <linearGradient id="head" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#12365a"/><stop offset="1" stop-color="#136b69"/></linearGradient>
+ <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#16324f" flood-opacity=".12"/></filter>
+ <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#52718b"/></marker>
+ <marker id="arrowTeal" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#16817a"/></marker>
+ <style>
+ text{font-family:Inter,"Segoe UI",Arial,sans-serif;fill:#18324b}.title{font-size:38px;font-weight:750;fill:#fff}.subtitle{font-size:18px;fill:#d8e8f3}.section{font-size:19px;font-weight:750;letter-spacing:.6px;fill:#12365a}.body{font-size:17px;fill:#38536c}.small{font-size:15px;fill:#506a80}.tiny{font-size:13px;fill:#61798c}.num{font-size:15px;font-weight:700;fill:#fff}.node{fill:#fff;stroke:#d6e2ec;stroke-width:2;rx:16;filter:url(#shadow)}.data{fill:#f4fbf8;stroke:#8bc9b6;stroke-width:2;rx:15}.input{fill:#fff;stroke:#bfd4e4;stroke-width:2;rx:14}.out{fill:#eaf7f4;stroke:#57b59a;stroke-width:2;rx:15}.line{fill:none;stroke:#52718b;stroke-width:3;marker-end:url(#arrow)}.dash{fill:none;stroke:#16817a;stroke-width:2.5;stroke-dasharray:8 8;marker-end:url(#arrowTeal)}
+ </style></defs>
+<rect width="1920" height="1080" fill="url(#bg)"/>
+<rect x="0" y="0" width="1920" height="138" fill="url(#head)"/>
+<text x="72" y="61" class="title">AgroSign | English-to-ISL Sign Sequence</text>
+<text x="74" y="99" class="subtitle">Agriculture-focused process understanding, ISL gloss ordering, and sign-video retrieval</text>
+<rect x="1544" y="45" width="300" height="45" rx="22" fill="#ffffff" opacity=".14"/><text x="1694" y="74" text-anchor="middle" class="subtitle" font-size="15">PROJECT ARCHITECTURE</text>
+<!-- input -->
+<text x="72" y="184" class="section">1  INPUT</text>
+<rect x="72" y="205" width="400" height="125" class="input"/>
+<text x="98" y="242" class="section">Typed text</text><text x="98" y="272" class="body">English, Hindi, or Kannada</text><text x="98" y="302" class="small">Manual text entry</text>
+<rect x="72" y="355" width="400" height="125" class="input"/>
+<text x="98" y="392" class="section">Speech input</text><text x="98" y="422" class="body">English / Hindi / Kannada audio</text><text x="98" y="452" class="small">Recorded upload or live speech</text>
+<!-- conversion -->
+<text x="552" y="184" class="section">2  TRANSCRIPTION &amp; LANGUAGE NORMALIZATION</text>
+<rect x="552" y="205" width="520" height="275" class="node"/>
+<text x="580" y="244" class="section">Convert input to English text</text>
+<rect x="580" y="266" width="218" height="74" rx="11" fill="#f3f7fb" stroke="#d6e2ec"/><text x="599" y="296" class="body" font-weight="700">Speech recognition</text><text x="599" y="320" class="small">Language-specific ASR</text>
+<rect x="820" y="266" width="224" height="74" rx="11" fill="#f3f7fb" stroke="#d6e2ec"/><text x="839" y="296" class="body" font-weight="700">Hindi / Kannada</text><text x="839" y="320" class="small">Translate to English</text>
+<text x="580" y="381" class="small">English text continues directly to the translation pipeline.</text>
+<text x="580" y="414" class="tiny">PDF document input is not part of the current active pipeline.</text>
+<!-- preprocessing -->
+<text x="1150" y="184" class="section">3  LANGUAGE PROCESSING</text>
+<rect x="1150" y="205" width="690" height="125" class="node"/>
+<text x="1178" y="244" class="section">Sentence splitting &amp; spaCy preprocessing</text><text x="1178" y="278" class="body">Normalize words • identify clauses, actions, objects, time and negation</text><text x="1178" y="305" class="small">Preserve sentence / clause boundaries for event order</text>
+<!-- first row arrows -->
+<path d="M472 267H536" class="line"/><path d="M472 417H520V442H536" class="line"/><path d="M1072 342H1128V267H1138" class="line"/>
+<!-- process detect -->
+<text x="72" y="532" class="section">4  AGRICULTURAL PROCESS DETECTION</text>
+<rect x="72" y="552" width="790" height="198" class="node"/>
+<text x="101" y="592" class="section">Extract ordered agricultural events</text>
+<rect x="101" y="615" width="202" height="92" rx="12" fill="#f3f7fb" stroke="#d6e2ec"/><text x="122" y="648" class="body" font-weight="700">Action &amp; object</text><text x="122" y="676" class="small">Lexical evidence</text>
+<rect x="321" y="615" width="218" height="92" rx="12" fill="#f3f7fb" stroke="#d6e2ec"/><text x="342" y="648" class="body" font-weight="700">Semantic similarity</text><text x="342" y="676" class="small">MiniLM embeddings</text>
+<rect x="557" y="615" width="276" height="92" rx="12" fill="#f3f7fb" stroke="#d6e2ec"/><text x="578" y="648" class="body" font-weight="700">Event attributes</text><text x="578" y="676" class="small">Polarity • status • sequence</text>
+<!-- dataset -->
+<rect x="936" y="552" width="376" height="198" class="data"/>
+<text x="964" y="592" class="section">Agriculture datasets</text><text x="964" y="630" class="body">agro_processes.csv</text><text x="964" y="657" class="small">Process names, descriptions, examples</text><text x="964" y="693" class="body">agro_process_metadata.csv</text><text x="964" y="720" class="small">Actions, objects, aliases, sign concepts</text>
+<path d="M936 650H878" class="dash"/>
+<!-- isl order -->
+<text x="1390" y="532" class="section">5  ISL GLOSS ORDERING</text>
+<rect x="1390" y="552" width="450" height="198" class="node"/>
+<text x="1418" y="592" class="section">Build an ordered gloss</text>
+<text x="1418" y="630" class="body">TIME → AGENT / TOPIC → OBJECT</text><text x="1418" y="660" class="body">→ PROCESS → NEGATION / QUESTION</text><text x="1418" y="703" class="small">Rule-based ISL ordering + fallback for</text><text x="1418" y="726" class="small">clauses without a detected process</text>
+<path d="M862 651H1374" class="line"/>
+<!-- signs mapping -->
+<text x="72" y="805" class="section">6  SIGN VIDEO RESOLUTION</text>
+<rect x="72" y="825" width="570" height="157" class="node"/>
+<text x="101" y="864" class="section">Map gloss concepts to available clips</text><text x="101" y="900" class="body">Resolve keywords / synonyms using agro_terms.csv</text><text x="101" y="931" class="small">Check sign_videos; report missing clips or mapped fallbacks</text><text x="101" y="960" class="tiny">Gloss meaning and available video coverage are kept distinct.</text>
+<rect x="690" y="825" width="350" height="157" class="data"/>
+<text x="718" y="864" class="section">Sign library</text><text x="718" y="900" class="body">agro_terms.csv</text><text x="718" y="931" class="small">Canonical terms • synonyms • paths</text><text x="718" y="960" class="small">sign_videos/*.mp4</text>
+<path d="M690 900H658" class="dash"/>
+<!-- output -->
+<text x="1100" y="805" class="section">7  TRANSLATION OUTPUT</text>
+<rect x="1100" y="825" width="740" height="157" class="out"/>
+<text x="1130" y="864" class="section">FastAPI backend → React frontend</text>
+<text x="1130" y="900" class="body">English meaning  •  detected processes  •  approximate ISL gloss</text>
+<text x="1130" y="931" class="body">Ordered sign-video playlist  •  missing-sign diagnostics</text>
+<text x="1130" y="960" class="small">Videos served from the project library through the /videos endpoint</text>
+<path d="M1615 750V790H1068V904H1088" class="line"/>
+<path d="M642 904H1088" class="line"/>
+<!-- footnote -->
+<text x="72" y="1037" class="tiny">Models shown reflect the current code path. ISL gloss is an approximate written representation; video output depends on mapped clips.</text>
+</svg>

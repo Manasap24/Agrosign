@@ -47,10 +47,10 @@ function Navbar() {
             <FiMic />
             Speech to Sign
           </NavLink>
-          <NavLink to="/pdf" className={linkClass}>
+          {/* <NavLink to="/pdf" className={linkClass}>
             <FiFileText />
             PDF to Sign
-          </NavLink>
+          </NavLink> */}
           <NavLink to="/results" className={linkClass}>
             <FiBookOpen />
             Results

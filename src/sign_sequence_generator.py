@@ -55,6 +55,29 @@ def _video_for_key(key: str) -> str | None:
     return str(path) if path.is_file() else None
 
 
+@lru_cache(maxsize=1)
+def load_sign_term_entries() -> list[dict[str, str]]:
+    """Load lexical term mappings whose canonical video exists in the library."""
+    terms_path = BASE_DIR / "dataset" / "agro_terms.csv"
+    df = pd.read_csv(terms_path).fillna("")
+    required = {"keyword", "synonyms", "video_path"}
+    missing = required.difference(df.columns)
+    if missing:
+        raise ValueError(f"Sign mapping CSV is missing required columns: {', '.join(sorted(missing))}")
+    entries = []
+    for _, row in df.iterrows():
+        keyword = str(row["keyword"]).strip().lower()
+        path = _video_for_key(keyword)
+        if not keyword or not path or not str(row["video_path"]).strip():
+            continue
+        entries.append({
+            "keyword": keyword,
+            "synonyms": str(row["synonyms"]).strip().lower(),
+            "path": path,
+        })
+    return entries
+
+
 def _expand_concept(concept_id: str) -> tuple[list[str], str, str]:
     """Return mapped video keys, type, and a human-readable concept name."""
     metadata = load_concept_metadata()
@@ -163,7 +186,14 @@ def _resolve_ideal_concept(concept_id: str, event: dict, example: str) -> tuple[
         "event_index": event.get("sequence_index"),
         "event_polarity": event.get("polarity", "positive"),
         "event_status": event.get("status", "asserted"),
-        "video_available": bool(available) and len(available) == len(direct_paths),
+        # A process is only represented when its action has a mapped video.
+        # Material/object clips may remain useful sequence components, but
+        # they must not make the process itself appear available.
+        "video_available": (
+            bool(available)
+            and len(available) == len(direct_paths)
+            and (concept_type != "process" or _video_for_key(concept_id.lower()) is not None)
+        ),
         "required_for_sequence": True,
     }
     return ideal, renderable, missing + fallback_records
@@ -207,6 +237,17 @@ def generate_video_sequence(process_result: dict) -> dict:
         }]
     else:
         diagnostics = []
+
+    condition_relation = str(event.get("condition_relation", "")).strip().lower()
+    condition_text = str(event.get("condition_text", "")).strip()
+    if condition_relation and condition_text:
+        diagnostics.append({
+            "code": "UNREPRESENTED_CONDITION",
+            "event_index": event.get("sequence_index"),
+            "condition_relation": condition_relation,
+            "condition_text": condition_text,
+            "message": "The event has a condition, but the sign-video library has no mapped condition sign; the process clips do not represent that condition.",
+        })
 
     return {
         "process_id": event.get("process_id", ""),

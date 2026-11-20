@@ -29,6 +29,8 @@ class AgriculturalEvent:
     bart_verified: bool | None = None
     bart_score: float | None = None
     sequence_relation: str = ""
+    condition_relation: str = ""
+    condition_text: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

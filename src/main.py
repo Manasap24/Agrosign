@@ -118,7 +118,11 @@ def translate(request: TextRequest, http_request: Request):
                 {**{key: value for key, value in clip.items() if key != "path"}, "video_url": video_url(clip["path"])}
                 for clip in process.get("renderable_sign_sequence", [])
             ]
-        sentence["renderable_sign_sequence"] = [clip for process in sentence.get("processes", []) for clip in process.get("renderable_sign_sequence", [])]
+        sentence["renderable_sign_sequence"] = [
+            {**{key: value for key, value in clip.items() if key != "path"},
+             "video_url": video_url(clip["path"])}
+            for clip in sentence.get("renderable_sign_sequence", [])
+        ]
     result["renderable_sign_sequence"] = [
         {**{k: v for k, v in clip.items() if k != "path"}, "video_url": video_url(clip["path"])}
         for clip in result.get("renderable_sign_sequence", [])

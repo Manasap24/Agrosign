@@ -235,6 +235,20 @@ def _phrase_is_negated(text: str, phrase: str) -> bool:
     return False
 
 
+def _has_agricultural_action_clause(text: str) -> bool:
+    """Recognize a temporal tail only when it contains an action and object."""
+    words = [normalize_word(word) for word in re.findall(r"[a-z]+", text.lower())]
+    action_present = any(
+        word in ACTION_WORDS or (word.endswith("ing") and word[:-3] + "e" in ACTION_WORDS)
+        for word in words
+    )
+    agricultural_objects = {"crop", "field", "soil", "plant", "seed", "farm", "land",
+                            "seedling", "nursery", "fertilizer", "fertiliser", "compost",
+                            "weed", "pest", "insect", "water", "produce", "fruit", "tractor"}
+    object_present = any(word in agricultural_objects for word in words)
+    return action_present and object_present
+
+
 def _clause_spans(text: str) -> list[tuple[str, str]]:
     """Split coordinated events while preserving fronted temporal clauses."""
     clean = text.strip()
@@ -254,6 +268,28 @@ def _clause_spans(text: str) -> list[tuple[str, str]]:
             first_clause, first_relation = main_clauses[0]
             main_clauses[0] = (first_clause, first_relation or "before")
         return [*main_clauses, (subclause, "before_reference")]
+
+    # Postposed temporal clauses: "Prepare the soil before planting seeds."
+    # Split only when the temporal tail itself contains an agricultural action
+    # and object; phrases such as "before the rain" remain part of the main
+    # clause and cannot become a spurious event.
+    postposed = re.match(r"(?is)^(.+?)\s+\b(before|after)\b\s+(.+?)\s*[.!?]*$", clean)
+    if postposed:
+        main, relation, subclause = postposed.groups()
+        main = main.strip(" ,.")
+        subclause = subclause.strip(" ,.")
+        if main and _has_agricultural_action_clause(subclause):
+            main_clauses = _clause_spans(main)
+            subclauses = _clause_spans(subclause)
+            if relation.lower() == "before":
+                if main_clauses:
+                    first_clause, first_relation = main_clauses[0]
+                    main_clauses[0] = (first_clause, first_relation or "before")
+                return [*main_clauses, *((clause, "before_reference") for clause, _ in subclauses)]
+            if main_clauses:
+                first_clause, first_relation = main_clauses[0]
+                main_clauses[0] = (first_clause, first_relation or "after")
+            return [*((clause, "after_reference") for clause, _ in subclauses), *main_clauses]
 
     actions = sorted(ACTION_WORDS, key=len, reverse=True)
     action_lookahead = r"(?=" + "|".join(re.escape(a) for a in actions) + r"\b)"
@@ -329,6 +365,36 @@ def split_action_clauses(sentence: str) -> list[str]:
     return [text for text, _ in _clause_spans(sentence)]
 
 
+def _condition_features(clause: str, action) -> tuple[str, str]:
+    """Extract a nearby if/unless/until clause for this action only."""
+    if action is None:
+        return "", ""
+    markers = list(re.finditer(r"\b(if|unless|until)\b", clause, re.I))
+    if not markers:
+        return "", ""
+
+    after_action = [marker for marker in markers if marker.start() >= action.idx]
+    marker = after_action[0] if after_action else next(
+        (item for item in reversed(markers) if item.end() <= action.idx), None
+    )
+    if marker is None:
+        return "", ""
+
+    if marker.start() < action.idx:
+        # A fronted condition ends at its comma, or at the action if punctuation
+        # is omitted: "If the soil is dry, irrigate the field."
+        comma = clause.find(",", marker.end(), action.idx)
+        condition_end = comma if comma >= 0 else action.idx
+        condition_text = clause[marker.end():condition_end]
+    else:
+        condition_text = clause[marker.end():]
+
+    condition_text = re.sub(r"^[\s,:;]+|[\s,.;:!?]+$", "", condition_text).strip()
+    if not condition_text:
+        return "", ""
+    return marker.group(1).lower(), condition_text
+
+
 def _event_features(clause: str) -> dict:
     doc = _nlp()(clause)
     tokens = [t for t in doc if not t.is_space and not t.is_punct]
@@ -385,6 +451,11 @@ def _event_features(clause: str) -> dict:
     # "nursery" in "sow seeds in a nursery" are context/method, not patient.
     direct_objects = [t for t in objects if t.dep_ in {"dobj", "obj", "attr", "oprd"}]
     patient = " ".join(t.text for t in (direct_objects or objects)[:3])
+    # Keep the applied material separate from a recipient such as crops in
+    # "apply water to crops". The patient below intentionally represents the
+    # agricultural recipient; generic verbs need their direct object as
+    # additional evidence so "apply pressure to crops" is not irrigation.
+    direct_object = " ".join(t.text for t in direct_objects[:3])
     if action is not None and action.lemma_.lower() in {
         "apply", "spread", "spray", "add", "supply", "provide", "deliver"
     }:
@@ -447,15 +518,18 @@ def _event_features(clause: str) -> dict:
         polarity, status, polarity_evidence = "positive", "asserted", ""
 
     tense = "past" if any(t.tag_ in {"VBD", "VBN"} for t in tokens) else "present"
+    condition_relation, condition_text = _condition_features(clause, action)
     # Action-specific object cues prevent "drinks water" becoming irrigation.
     has_agricultural_object = any(w in words for w in {"crop", "field", "soil", "plant", "seed", "farm", "land"})
     method_text = ""
     return {"doc": doc, "lemmas": lemmas, "words": words, "action_token": action,
             "action": normalize_word(action.lemma_.lower()) if action else "",
             "agent": agent, "patient": patient, "polarity": polarity,
+            "direct_object": direct_object,
             "polarity_evidence": polarity_evidence,
             "status": status, "tense": tense, "has_agricultural_object": has_agricultural_object,
-            "method_text": method_text}
+            "method_text": method_text, "condition_relation": condition_relation,
+            "condition_text": condition_text}
 
 
 def _score_profiles(clause: str, features: dict, top_k: int = 12, query_vector=None,
@@ -474,24 +548,41 @@ def _score_profiles(clause: str, features: dict, top_k: int = 12, query_vector=N
     for profile in profiles:
         sem = semantic[profile["embedding_index"]].item() if semantic is not None else 0.0
         # Specific method phrases are independent of the parent process label.
+        # Method/alias evidence must belong to this event clause. Sentence-
+        # level context remains useful for semantic retrieval, but using it for
+        # lexical validation can leak a material from a neighboring action.
         method = next((m for m in profile["methods"] + profile["aliases"]
-                       if _phrase_present(retrieval_text, m)
-                       and not _phrase_is_negated(retrieval_text, m)), "")
+                       if _phrase_present(clause, m)
+                       and not _phrase_is_negated(clause, m)), "")
         action_fit = float(bool(
             (features["action"] and features["action"] in profile["actions"])
             or any(" " in action and _phrase_present(clause, action) for action in profile["actions"])
             or (features["action"] == "use" and bool(method))
         ))
+        # "Apply" alone does not identify an agricultural process: the crop or
+        # field may be only its recipient, while the applied thing can be
+        # unrelated (e.g. pressure). Application processes need their explicit
+        # method/material phrase. Irrigation metadata lists methods such as
+        # drip/sprinkler rather than water itself, so also accept water as its
+        # direct object. Other action verbs keep their existing evidence path.
+        if features["action"] == "apply":
+            applied_terms = set(tokenize(features.get("direct_object", "")))
+            explicit_irrigation_water = (
+                profile["process_id"] in {"IRRIGATION", "DRIP_IRRIGATION", "SPRINKLER_IRRIGATION"}
+                and bool(applied_terms & {"water", "irrigation"})
+            )
+            if not method and not explicit_irrigation_water:
+                action_fit = 0.0
         # A subtype must be explicitly present; semantic resemblance alone must
         # not turn ordinary irrigation into sprinkler/drip irrigation.
         if profile["parent_id"] in {"IRRIGATION", "FERTILIZATION"} and not method:
             continue
         parent = profiles_by_id.get(profile["parent_id"])
         if parent is not None:
-            explicit_name = _phrase_present(retrieval_text, profile["process_name"])
-            explicit_alias = any(_phrase_present(retrieval_text, alias) for alias in profile["aliases"])
-            positive_method = any(_phrase_present(retrieval_text, candidate)
-                                  and not _phrase_is_negated(retrieval_text, candidate)
+            explicit_name = _phrase_present(clause, profile["process_name"])
+            explicit_alias = any(_phrase_present(clause, alias) for alias in profile["aliases"])
+            positive_method = any(_phrase_present(clause, candidate)
+                                  and not _phrase_is_negated(clause, candidate)
                                   for candidate in profile["methods"])
             if profile["methods"] and not (explicit_name or explicit_alias or positive_method):
                 continue
@@ -504,7 +595,7 @@ def _score_profiles(clause: str, features: dict, top_k: int = 12, query_vector=N
             if not (explicit_name or explicit_alias or distinct_method or distinct_action
                     or (child_object_match and not parent_object_match)):
                 continue
-        phrase_fit = float(bool(method or any(_phrase_present(retrieval_text, a) for a in profile["aliases"])))
+        phrase_fit = float(bool(method or any(_phrase_present(clause, a) for a in profile["aliases"])))
         object_words = set(tokenize(features.get("patient", "")))
         if normalize_word(features.get("patient", "")) in {"it", "them", "this", "that"}:
             # Coordinated directions often say "add compost ... and mix it";
@@ -606,6 +697,7 @@ def _detect_general_clause(clause: str, relation: str, index: int, query_vector=
         confidence=round(score, 4), confidence_level=_confidence_level(score),
         context_verified=True, category=profile["category"], sign_concepts=sign_concepts,
         semantic_confidence=round(semantic, 4), sequence_relation=relation,
+        condition_relation=features["condition_relation"], condition_text=features["condition_text"],
     )
 
 
@@ -733,6 +825,7 @@ def _detect_clause(clause: str, relation: str, index: int, query_vector=None,
         category=p["category"], sign_concepts=sign_concepts,
         semantic_confidence=round(best["semantic"], 4),
         bart_verified=bart_verified, bart_score=bart_score, sequence_relation=relation,
+        condition_relation=features["condition_relation"], condition_text=features["condition_text"],
     )
 
 
